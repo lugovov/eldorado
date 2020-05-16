@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Eldorado Market
 // @namespace    http://eldorado.botva.ru/
-// @version      0.1.2
+// @version      0.1.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -87,7 +87,7 @@ padding: 10px;
 border-radius: 0 0 0 10px;
 z-index:10;
 opacity: 0.8;
-font-size: 14px;
+font-size: 1vw;
 }
 .blink{color:red;font-size:150%}
 `
