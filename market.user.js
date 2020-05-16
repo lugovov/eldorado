@@ -1,7 +1,9 @@
 // ==UserScript==
 // @name         Eldorado Market
 // @namespace    http://eldorado.botva.ru/
-// @version      0.1
+// @version      0.1.1
+// @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
+// @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
 // @author       me
 // @match        https://eldorado.botva.ru/
@@ -73,6 +75,8 @@ padding: 10px;
 border-radius: 0 0 0 10px;
 z-index:10;
 opacity: 0.8;
+font-size: 20px;
+border:1px solid 
 }
 .blink{color:red;font-size:150%}
 `
@@ -87,9 +91,9 @@ opacity: 0.8;
         if(!div){
             initDiv();
         }
-        var text=['<table>'];
+        var text=['<table style="width:100%;border-color: #e49f63;" cellspacing="0" border="1" cellpadding="3">'];
         for(let i in lots){
-            text.push('<tr><td colspan="2"><br/><b>'+window.getLang('name_res'+i)+'</b></td><tr><tr>'+
+            text.push('<tr><td colspan="2"><br/><b>'+window.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
                       lots[i].map((lot,index)=>'<td>'
                                   +window.digits(lot.amount)+'</td><td><span'
                                   +(lots[i][index+1]&&(lots[i][index+1].price>lot.price*1.5)?' class="blink"':'')+'>'+
