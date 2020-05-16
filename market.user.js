@@ -93,9 +93,9 @@ border:1px solid
         }
         var text=['<table style="width:100%;border-color: #e49f63;" cellspacing="0" border="1" cellpadding="3">'];
         for(let i in lots){
-            text.push('<tr><td colspan="2"><br/><b>'+window.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
-                      lots[i].map((lot,index)=>'<td>'
-                                  +window.digits(lot.amount)+'</td><td><span'
+            text.push('<tr><td colspan="3"><br/><b>'+window.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
+                      lots[i].map((lot,index)=>'<td align="right">'
+                                  +window.digits(lot.amount)+'</td><td align="right"><span'
                                   +(lots[i][index+1]&&(lots[i][index+1].price>lot.price*1.5)?' class="blink"':'')+'>'+
                                      window.digits(lot.price)+'</span></td><td>'+storage.get(lot.pid)+'</td>')
                       .join('</tr><tr>')
