@@ -1,18 +1,21 @@
 // ==UserScript==
 // @name         Eldorado Market
 // @namespace    http://eldorado.botva.ru/
-// @version      0.1.1
+// @version      0.1.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
 // @author       me
 // @match        https://eldorado.botva.ru/
-// @grant        none
+// @grant       GM_getValue
+// @grant       GM_setValue
+// @run-at      document-start
 // ==/UserScript==
 
-(function() {
+window.addEventListener ("load", function() {
     'use strict';
-    window.jQuery(document).ajaxComplete( function( event, xhr, options ){
+    var win=window.unsafeWindow;
+    win.jQuery(document).ajaxComplete( function( event, xhr, options ){
         if(options.url=='https://eldorado.botva.ru/fx.php'){
             try{
                 if(xhr.responseJSON.result.island_data){
@@ -30,20 +33,29 @@
         }
     });
 var storage=new function(){
-    var data={};
+    var data={},db;
+    var updateStorage=function(){
+        clearTimeout(timer);
+        timer=setTimeout(()=>{
+            GM_setValue('pid_names', encodeURI(JSON.stringify(data)));
+        },1000)
+    }
     try{
-        var db=JSON.parse(window.localStorage.getItem('pid_names'));
+        db=decodeURI(GM_getValue('pid_names'));
+        if(!db){
+            db=win.localStorage.getItem('pid_names');
+            if(db){
+                updateStorage();
+                setTimeout(()=>win.localStorage.removeItem('pid_names'),10000);
+            }
+        }
+        db=JSON.parse(db);
         if(db){
             data=db;
         }
     }catch(e){}
     var timer=false;
-    var updateStorage=function(){
-        clearTimeout(timer);
-        timer=setTimeout(()=>{
-            window.localStorage.setItem('pid_names',JSON.stringify(data));
-        },1000)
-    }
+
     this.get=function(id){
         if(id in data){
             return String(data[id].name).replace(/</g,'&lt;')
@@ -76,7 +88,6 @@ border-radius: 0 0 0 10px;
 z-index:10;
 opacity: 0.8;
 font-size: 14px;
-border:1px solid 
 }
 .blink{color:red;font-size:150%}
 `
@@ -93,11 +104,11 @@ border:1px solid
         }
         var text=['<table style="width:100%;border-color: #e49f63;" cellspacing="0" border="1" cellpadding="3">'];
         for(let i in lots){
-            text.push('<tr><td colspan="3"><br/><b>'+window.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
+            text.push('<tr><td colspan="3"><br/><b>'+win.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
                       lots[i].map((lot,index)=>'<td align="right">'
-                                  +window.digits(lot.amount)+'</td><td align="right"><span'
+                                  +win.digits(lot.amount)+'</td><td align="right"><span'
                                   +(lots[i][index+1]&&(lots[i][index+1].price>lot.price*1.5)?' class="blink"':'')+'>'+
-                                     window.digits(lot.price)+'</span></td><td>'+storage.get(lot.pid)+'</td>')
+                                     win.digits(lot.price)+'</span></td><td>'+storage.get(lot.pid)+'</td>')
                       .join('</tr><tr>')
                   +'</tr>');
         }
@@ -116,5 +127,4 @@ border:1px solid
                 storage.set(data[i].id,{cont:data[i].continent,island:data[i].island,name:data[i].name,lvl:data[i].level})
         }
     }
-    // Your code here...
-})();
+});
