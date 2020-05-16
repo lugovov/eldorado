@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Eldorado Market
+// @name         Рынок Эльдорадо и БМ островов
 // @namespace    http://eldorado.botva.ru/
-// @version      0.1.4
+// @version      0.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -30,6 +30,11 @@ window.addEventListener ("load", function() {
             try{
                 displayLots(xhr.responseJSON.info._castle_data[9].data.orders);
             }catch(e){console.error(e)}
+            setTimeout(()=>{
+                try{
+                    displayIsland(xhr.responseJSON.result.island_data);
+                }catch(e){console.error(e)}
+            },1000)
         }
     });
 var storage=new function(){
@@ -70,17 +75,21 @@ var storage=new function(){
     }
     return this;
 }
-    var div;
+    var div,show=true;;
     document.body.addEventListener('keypress', function(event){
 		switch(event.code){
 			case 'KeyH':{
+				show=!show;
 				if(div){
-					div.style.display=div.style.display=='none'?'':'none';
+					div.style.display=show?'':'none';
 				}
+                if(!show){
+                    hideIsland();
+                }
 				break;
 			}
 		}
-	})    
+	})
     var initDiv=function(){
         var style=document.createElement('style');
         var root=document.createElement('div');
@@ -136,5 +145,25 @@ font-size: 1vw;
         for(var i in data){
                 storage.set(data[i].id,{cont:data[i].continent,island:data[i].island,name:data[i].name,lvl:data[i].level})
         }
+    }
+    var displayIsland=function(data){
+        if(show){
+            for(let i in data){
+                if(data[i].can_attack==1){
+                    let el=document.querySelector('.town_block[data-index="'+i+'"]').querySelector('.map_item_number')
+                    if(!el){
+                        continue;
+                    }
+                    el.textContent=data[i].local_army.army_power;
+                    el.style.opacity=1;
+                }
+            }
+        }
+    }
+    var hideIsland=function(){
+        document.querySelectorAll('.map_item_number').forEach(el=>{
+            el.textContent=el.parentNode.parentNode.dataset.index;
+            el.style.opacity=null;
+        })
     }
 });
