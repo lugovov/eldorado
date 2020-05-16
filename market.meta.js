@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Eldorado Market
 // @namespace    http://eldorado.botva.ru/
-// @version      0.1.3
+// @version      0.1.4
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
-// @author       me
+// @author       lugovov
 // @match        https://eldorado.botva.ru/
 // @grant       GM_getValue
 // @grant       GM_setValue
