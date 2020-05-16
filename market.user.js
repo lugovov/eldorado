@@ -75,7 +75,7 @@ padding: 10px;
 border-radius: 0 0 0 10px;
 z-index:10;
 opacity: 0.8;
-font-size: 20px;
+font-size: 14px;
 border:1px solid 
 }
 .blink{color:red;font-size:150%}
