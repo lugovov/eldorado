@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рынок Эльдорадо и БМ островов
 // @namespace    http://eldorado.botva.ru/
-// @version      0.2
+// @version      0.2.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -34,7 +34,13 @@ window.addEventListener ("load", function() {
                 try{
                     displayIsland(xhr.responseJSON.result.island_data);
                 }catch(e){console.error(e)}
+                try{
+                    if(xhr.responseJSON.result.continent_data){
+                        updateContinent(xhr.responseJSON.result.continent_data,xhr.responseJSON.result.continent_index);
+                    }
+                }catch(e){console.error(e)}
             },1000)
+
         }
     });
 var storage=new function(){
@@ -72,6 +78,18 @@ var storage=new function(){
             data[id]=info;
             updateStorage()
         }
+    }
+    this.continent=function(id){
+        let stat={};
+        for(let i in data){
+            if(data[i].cont==id){
+                if(!(data[i].island in stat)){
+                    stat[data[i].island]=0;
+                }
+                stat[data[i].island]++;
+            }
+        }
+        return stat;
     }
     return this;
 }
@@ -165,5 +183,18 @@ font-size: 1vw;
             el.textContent=el.parentNode.parentNode.dataset.index;
             el.style.opacity=null;
         })
+    }
+    var updateContinent=function(data,id){
+        if(show){
+            let stat=storage.continent(id);
+            document.querySelectorAll('.island_block').forEach(el=>{
+                let index=el.dataset.index;
+                let flag=el.querySelector('.island_block_flag');
+                if(flag && stat[index]!=flag.textContent && flag.textContent>0 ){
+                    el.style.filter='grayscale(0.9)';
+                    flag.classList.remove('flag1','flag2','flag3');
+                }
+            })
+        }
     }
 });
