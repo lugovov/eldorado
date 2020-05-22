@@ -206,17 +206,17 @@ font-size: 1vw;
         var autoUpdate=function(type){
             clearInterval(timers[type]);
             var speed=3600000/info[type].inHour;
-            if(show){
-                timers[type]=setInterval(()=>{
+            timers[type]=setInterval(()=>{
+                if(show){
                     let value=info[type].value+Math.floor((Date.now()-info[type].time)/speed);
                     if(value>=info[type].max){
                         clearInterval(timers[type])
-                        value==info[type].max
+                        value=info[type].max
                     }
                     let el=document.querySelector('.global_header_money_item[data-id="'+info[type].id+'"] .global_header_money_text b')
                     if(el)el.textContent=win.digits(value);
-                },Math.max(100,Math.ceil(speed)));
-            }
+                }
+            },Math.max(100,Math.ceil(speed)));
         }
         return function(data){
             info={
