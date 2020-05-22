@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рынок Эльдорадо и БМ островов
 // @namespace    http://eldorado.botva.ru/
-// @version      0.3
+// @version      0.3.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -205,27 +205,31 @@ font-size: 1vw;
         var info={};
         var autoUpdate=function(type){
             clearInterval(timers[type]);
+            var speed=3600000/info[type].inHour;
             if(show){
                 timers[type]=setInterval(()=>{
-                    info[type].value++;
-                    if(info[type].value>=info[type].max){
+                    let value=info[type].value+Math.floor((Date.now()-info[type].time)/speed);
+                    if(value>=info[type].max){
                         clearInterval(timers[type])
+                        value==info[type].max
                     }
                     let el=document.querySelector('.global_header_money_item[data-id="'+info[type].id+'"] .global_header_money_text b')
-                    if(el)el.textContent=win.digits(info[type].value);
-                },Math.ceil(3600000/info[type].inHour));
+                    if(el)el.textContent=win.digits(value);
+                },Math.max(100,Math.ceil(speed)));
             }
         }
         return function(data){
             info={
                 money:{
                     value:data.gold,
+                    time: Date.now(),
                     max:data._castle_stat.cap_gold,
                     inHour:data._castle_stat.mine_gold,
                     id:1,
                 },
                 gems:{
                     value:data.gems,
+                    time: Date.now(),
                     max:data._castle_stat.cap_gems,
                     inHour:data._castle_stat.mine_gems,
                     id:2
