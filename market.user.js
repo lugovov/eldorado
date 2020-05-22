@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Рынок Эльдорадо и БМ островов
 // @namespace    http://eldorado.botva.ru/
-// @version      0.2.1
+// @version      0.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -30,6 +30,9 @@ window.addEventListener ("load", function() {
             try{
                 displayLots(xhr.responseJSON.info._castle_data[9].data.orders);
             }catch(e){console.error(e)}
+            try{
+                createMoneyTimer(xhr.responseJSON.info);
+            }catch(e){console.error(e)}            
             setTimeout(()=>{
                 try{
                     displayIsland(xhr.responseJSON.result.island_data);
@@ -197,4 +200,39 @@ font-size: 1vw;
             })
         }
     }
+    var createMoneyTimer=(function(){
+        var timers={}
+        var info={};
+        var autoUpdate=function(type){
+            clearInterval(timers[type]);
+            if(show){
+                timers[type]=setInterval(()=>{
+                    info[type].value++;
+                    if(info[type].value>=info[type].max){
+                        clearInterval(timers[type])
+                    }
+                    let el=document.querySelector('.global_header_money_item[data-id="'+info[type].id+'"] .global_header_money_text b')
+                    if(el)el.textContent=win.digits(info[type].value);
+                },Math.ceil(3600000/info[type].inHour));
+            }
+        }
+        return function(data){
+            info={
+                money:{
+                    value:data.gold,
+                    max:data._castle_stat.cap_gold,
+                    inHour:data._castle_stat.mine_gold,
+                    id:1,
+                },
+                gems:{
+                    value:data.gems,
+                    max:data._castle_stat.cap_gems,
+                    inHour:data._castle_stat.mine_gems,
+                    id:2
+                }
+            };
+            autoUpdate('money');
+            autoUpdate('gems');
+        }
+    })();    
 });
