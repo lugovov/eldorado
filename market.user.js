@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         Рынок Эльдорадо и БМ островов
+// @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.3.1
+// @version      0.4
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -32,7 +32,15 @@ window.addEventListener ("load", function() {
             }catch(e){console.error(e)}
             try{
                 createMoneyTimer(xhr.responseJSON.info);
-            }catch(e){console.error(e)}            
+            }catch(e){console.error(e)}
+            try{
+                var params=new URLSearchParams(options.data);
+                switch(params.get('cmd')){
+                    case 'do_craft':{
+                        island_timers.setTimer(params.get('island_point'),xhr.responseJSON.result.island_data[params.get('island_point')].type,xhr.responseJSON.result.island_data[params.get('island_point')].back_time+'000');
+                    }
+                }
+            }catch(e){}
             setTimeout(()=>{
                 try{
                     displayIsland(xhr.responseJSON.result.island_data);
@@ -46,6 +54,118 @@ window.addEventListener ("load", function() {
 
         }
     });
+    var island_timers=new function(){
+        var timers={},div,display;
+        var time=function(sec){
+            return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+        }
+        this.setTimer=function(id,type,end){
+            timers[id]={
+                icon:win.getLang('icon_res'+type),
+                name: win.getLang('name_res'+type),
+                harvest: new Date().valueOf(),
+                end: Number(end),
+                din: true
+            };
+            this.saveTimers();
+            this.updateTimers();
+        }
+        this.updateTimers=function(){
+            let now=Date.now();
+            for(var i in timers){
+                if(timers[i].end<now){
+                    delete timers[i];
+                }
+            }
+        }
+        setInterval(()=>{
+            var text=[];
+            var now=Date.now();
+            for(let i in timers){
+                let sec=(now-timers[i].harvest)/1000;
+                let res=Math.min(5,Math.floor(sec/600));
+                if(now>timers[i].end){
+                    setTimeout(this.updateTimers(),100);
+                    continue;
+                }
+                let harv=(timers[i].end<now+600000||res==5);
+                text.push('<div'+(harv?' class="harvest"':'')+'>'+timers[i].name+': '+String(timers[i].icon).repeat(res)+
+                          (res<5 &&((timers[i].end-now)/1000)>sec%600?' через '+time(600-Math.floor(sec%600)):'')+
+                          (harv?' СОБИРАТЬ! ':'')+
+                          (timers[i].end<now+3600000?', до возврата '+time(Math.floor((timers[i].end-now)/1000)):'')+
+                          '</div>'
+                         );
+            }
+            if(text.length==0){
+                text.push('А не захватить ли оазис?');
+            }
+            div.innerHTML=text.join('');
+        },1000)
+        this.saveTimers=function(){
+            localStorage.setItem('timers',JSON.stringify(timers));
+        }
+        this.loadTimers=function(){
+            try{
+                var t=JSON.parse(localStorage.getItem('timers'))
+                if(t){
+                    timers=t;
+                    this.updateTimers();
+                }
+            }catch(e){}
+        }
+        var style=document.createElement('style');
+        var root=document.createElement('div');
+        var shadow=root.attachShadow({mode:'open'});
+        style.textContent=`#timers{
+pointer-events:none;
+border:1px solid #f8dd7b;
+background-color:#fbebaa;
+transition:0.5s;
+position:fixed;
+left:0;
+bottom:0;
+padding: 10px;
+border-radius: 0 10px 0 0;
+z-index:10;
+opacity: 0.8;
+font-size: 1vw;
+line-height:1.5vw;
+}
+#timers .harvest{color:red;font-size:250%}
+.icon {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    background-image: url(/static/images/ico_20.png?v=6);
+    background-repeat: no-repeat;
+    vertical-align: middle;
+    background-color: transparent;
+}
+.icon_res1 {
+    background-position: -80px -40px;
+}
+
+.icon_res2 {
+    background-position: -100px -40px;
+}
+
+.icon_res3 {
+    background-position: -140px -40px;
+}
+
+.icon_res4 {
+    background-position: -120px -40px;
+}
+`
+        shadow.appendChild(style);
+            div=document.createElement('div');
+            div.id="timers"
+            shadow.appendChild(div);
+            document.body.appendChild(root);
+        this.loadTimers();
+        return this;
+    }
+
 var storage=new function(){
     var data={},db;
     var updateStorage=function(){
@@ -221,22 +341,22 @@ font-size: 1vw;
         return function(data){
             info={
                 money:{
-                    value:data.gold,
+                    value:Number(data.gold),
                     time: Date.now(),
-                    max:data._castle_stat.cap_gold,
-                    inHour:data._castle_stat.mine_gold,
+                    max: Number(data._castle_stat.cap_gold),
+                    inHour:Number(data._castle_stat.mine_gold),
                     id:1,
                 },
                 gems:{
-                    value:data.gems,
+                    value:Number(data.gems),
                     time: Date.now(),
-                    max:data._castle_stat.cap_gems,
-                    inHour:data._castle_stat.mine_gems,
+                    max:Number(data._castle_stat.cap_gems),
+                    inHour:Number(data._castle_stat.mine_gems),
                     id:2
                 }
             };
             autoUpdate('money');
             autoUpdate('gems');
         }
-    })();    
+    })();
 });
