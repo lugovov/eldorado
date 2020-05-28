@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.4
+// @version      0.5
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -30,6 +30,9 @@ window.addEventListener ("load", function() {
             try{
                 displayLots(xhr.responseJSON.info._castle_data[9].data.orders);
             }catch(e){console.error(e)}
+            try{
+                displayEvent(xhr.responseJSON.info._event);
+            }catch(e){console.error(e)}            
             try{
                 createMoneyTimer(xhr.responseJSON.info);
             }catch(e){console.error(e)}
@@ -359,4 +362,85 @@ font-size: 1vw;
             autoUpdate('gems');
         }
     })();
+    
+    var displayEvent=(function(){
+        var div;
+        var style=document.createElement('style');
+        var root=document.createElement('div');
+        var shadow=root.attachShadow({mode:'open'});
+        style.textContent=`#event{
+pointer-events:none;
+/*
+border:1px solid #f8dd7b;
+background-color:#fbebaa;
+*/
+transition:0.5s;
+position:fixed;
+right:0;
+bottom:0;
+padding: 10px;
+border-radius: 0 10px 0 0;
+z-index:10;
+opacity: 0.8;
+font-size: 14pt;
+/*line-height:1.5vw;*/
+}
+.eb{
+margin: 0 auto;
+    width: 246px;
+    height: 246px;
+    line-height: 120%;
+    box-sizing: border-box;
+}
+.timer {
+    width: 110px;
+    height: 30px;
+padding-top:10px;
+    background: url(/static/images/events/event_ribbon.png);
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    bottom: 50px;
+position:absolute;
+text-align:center;
+}
+`
+        shadow.appendChild(style);
+            div=document.createElement('div');
+            div.id="event"
+            shadow.appendChild(div);
+            document.body.appendChild(root);
+        var timer;
+        var clearTimer=function(){
+            clearInterval(timer);
+        }
+        var setTimer=function(el,end){
+            let endtime=Number(end+'000');
+            timer=setInterval(()=>{
+                let time=endtime-Date.now();
+                if(time<0){
+                    el.textContent='--:--:--';
+                    clearTimer();
+                }else{
+                    let s=Math.floor(time/1000);
+                    let m=Math.floor(s/60);
+                    let h=Math.floor(m/60);
+                    el.textContent=[h,m%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
+                }
+            })
+        }
+        return function(event){
+            clearTimer();
+            console.log(event);
+            if(event){
+                div.innerHTML='<div class="eb"><div class="timer"></div></div>'
+                div.querySelector('.eb').style.backgroundImage='url(/static/images/events/npc'+String(event.type).padStart(2,'0')+'_'+String(event.complexity).padStart(2,0)+'.png)';
+                setTimer(div.querySelector('.timer'),event.time);
+            }
+            else{
+                div.innerHTML='';
+            }
+        }
+    })()
+    
 });
