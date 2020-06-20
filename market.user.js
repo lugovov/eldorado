@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.5
+// @version      0.5.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -32,7 +32,7 @@ window.addEventListener ("load", function() {
             }catch(e){console.error(e)}
             try{
                 displayEvent(xhr.responseJSON.info._event);
-            }catch(e){console.error(e)}            
+            }catch(e){console.error(e)}
             try{
                 createMoneyTimer(xhr.responseJSON.info);
             }catch(e){console.error(e)}
@@ -41,8 +41,16 @@ window.addEventListener ("load", function() {
                 switch(params.get('cmd')){
                     case 'do_craft':{
                         island_timers.setTimer(params.get('island_point'),xhr.responseJSON.result.island_data[params.get('island_point')].type,xhr.responseJSON.result.island_data[params.get('island_point')].back_time+'000');
+                        break;
+                    }
+                    case 'do_leave':{
+                        island_timers.removeTimer(params.get('island_point'));
+                        break;
                     }
                 }
+            }catch(e){}
+            try{
+                island_timers.updateTimer(xhr.responseJSON.info.effects)
             }catch(e){}
             setTimeout(()=>{
                 try{
@@ -62,6 +70,13 @@ window.addEventListener ("load", function() {
         var time=function(sec){
             return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
         }
+        this.removeTimer=function(id){
+            if(id in timers){
+                delete timers[id];
+                this.saveTimers();
+                this.updateTimers();
+            }
+        }
         this.setTimer=function(id,type,end){
             timers[id]={
                 icon:win.getLang('icon_res'+type),
@@ -72,6 +87,22 @@ window.addEventListener ("load", function() {
             };
             this.saveTimers();
             this.updateTimers();
+        }
+        this.updateTimer=function(effects){
+            var active=[];
+            for(let i in effects){
+                if(effects[i].type=='1090'){
+                    if(timers[effects[i].var1]){
+                        timers[effects[i].var1].harvest=effects[i].time_from+'000';
+                    }
+                    active.push(effects[i].var1);
+                }
+            }
+            for(let i in timers){
+                if(active.indexOf(i)==-1){
+                    this.removeTimer(i);
+                }
+            }
         }
         this.updateTimers=function(){
             let now=Date.now();
@@ -92,15 +123,23 @@ window.addEventListener ("load", function() {
                     continue;
                 }
                 let harv=(timers[i].end<now+600000||res==5);
-                text.push('<div'+(harv?' class="harvest"':'')+'>'+timers[i].name+': '+String(timers[i].icon).repeat(res)+
-                          (res<5 &&((timers[i].end-now)/1000)>sec%600?' через '+time(600-Math.floor(sec%600)):'')+
-                          (harv?' СОБИРАТЬ! ':'')+
+                text.push('<div'+(harv&&res>0?' class="harvest"':'')+'>'+timers[i].name+': '+String(timers[i].icon).repeat(res)+
+                          (res<5 &&(((timers[i].end-now)>sec%600)&&(600-Math.floor(sec%600)<(timers[i].end-now)/1000)
+                )?' через '+time(600-Math.floor(sec%600)):'')+
+                          (harv&&res>0?' СОБИРАТЬ! ':'')+
                           (timers[i].end<now+3600000?', до возврата '+time(Math.floor((timers[i].end-now)/1000)):'')+
                           '</div>'
                          );
             }
             if(text.length==0){
-                text.push('А не захватить ли оазис?');
+                /*
+                let units=[],
+                    info=win.ng_data.info
+                if(info.unit_1>0){
+                    units.push()
+                }
+                */
+                text.push('А не захватить ли нам оазис?');
             }
             div.innerHTML=text.join('');
         },1000)
@@ -362,7 +401,6 @@ font-size: 1vw;
             autoUpdate('gems');
         }
     })();
-    
     var displayEvent=(function(){
         var div;
         var style=document.createElement('style');
@@ -432,7 +470,7 @@ text-align:center;
         return function(event){
             clearTimer();
             console.log(event);
-            if(event){
+            if(event && event.done=="0"){
                 div.innerHTML='<div class="eb"><div class="timer"></div></div>'
                 div.querySelector('.eb').style.backgroundImage='url(/static/images/events/npc'+String(event.type).padStart(2,'0')+'_'+String(event.complexity).padStart(2,0)+'.png)';
                 setTimer(div.querySelector('.timer'),event.time);
@@ -442,5 +480,4 @@ text-align:center;
             }
         }
     })()
-    
 });
