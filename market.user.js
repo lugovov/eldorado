@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.5.2
+// @version      0.7
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -39,6 +39,7 @@ window.addEventListener ("load", function() {
             try{
                 var params=new URLSearchParams(options.data);
                 switch(params.get('cmd')){
+					/*
                     case 'do_craft':{
                         island_timers.setTimer(params.get('island_point'),xhr.responseJSON.result.island_data[params.get('island_point')].type,xhr.responseJSON.result.island_data[params.get('island_point')].back_time+'000');
                         break;
@@ -47,10 +48,17 @@ window.addEventListener ("load", function() {
                         island_timers.removeTimer(params.get('island_point'));
                         break;
                     }
+                    * */
+                    case 'event_start':{
+                        if(xhr.responseJSON.result.event_boxes){
+                            events.select(xhr.responseJSON.result.event_boxes,params.get('casket'));
+                        }
+                        break;
+                    }
                 }
             }catch(e){}
             try{
-                island_timers.updateTimer(xhr.responseJSON.info.effects)
+                island_timers.setTimer(xhr.responseJSON.info._hero_list);
             }catch(e){}
             setTimeout(()=>{
                 try{
@@ -77,18 +85,13 @@ window.addEventListener ("load", function() {
                 this.updateTimers();
             }
         }
-        this.setTimer=function(id,type,end){
-            timers[id]={
-                icon:win.getLang('icon_res'+type),
-                name: win.getLang('name_res'+type),
-                harvest: new Date().valueOf(),
-                end: Number(end),
-                din: true
-            };
+        this.setTimer=function(list){
+            timers=list;
             this.saveTimers();
             this.updateTimers();
         }
         this.updateTimer=function(effects){
+            /*
             var active=[];
             for(let i in effects){
                 if(effects[i].type=='1090'){
@@ -103,19 +106,28 @@ window.addEventListener ("load", function() {
                     this.removeTimer(i);
                 }
             }
+            */
         }
         this.updateTimers=function(){
+            /*
             let now=Date.now();
             for(var i in timers){
                 if(timers[i].end<now){
                     delete timers[i];
                 }
             }
+            */
         }
         setInterval(()=>{
-            var text=[];
+            var text=['<table>'];
             var now=Date.now();
+            var active=0;
+            if(win.ng_data.info._hero_active){
+                active=win.ng_data.info._hero_active.id
+            }
             for(let i in timers){
+                let hero=timers[i];
+                /*
                 let sec=(now-timers[i].harvest)/1000;
                 let res=Math.min(5,Math.floor(sec/600));
                 if(now>timers[i].end){
@@ -130,6 +142,33 @@ window.addEventListener ("load", function() {
                           (timers[i].end<now+3600000?', до возврата '+time(Math.floor((timers[i].end-now)/1000)):'')+
                           '</div>'
                          );
+                */
+                let units=[];
+                for(let u=1;u<4;u++){
+                    if(hero['unit_'+u]>0){
+                        units.push('<b class="icon icon_unit'+u+'"></b>'+hero['unit_'+u]);
+                    }
+                }
+                if(units.length==0){
+                    continue;
+                }
+                let res=[];
+                for(let r=1;r<5;r++){
+                    if(hero['res_'+r]>0){
+                        res.push('<b class="icon icon_res'+r+'"></b>'+hero['res_'+r]);
+                    }
+                }
+                if(!hero.hasOwnProperty('base_energy')){
+                    hero.base_energy=Number(hero.energy);
+                }
+                let energy=Math.min(hero.base_energy+Math.floor((now-new Date(Number(hero.energy_time)*1000))/50000),hero.max_energy);
+                if(hero.enegry!=energy){
+                    hero.energy=energy;
+                }
+                text.push(`<tr `+(active==i?' style="font-weight:bolder"':'')
+                          +`><td><b class="icon icon_level"></b>${hero.lvl}</td><td>`
+                          +win.getLang('name_card'+timers[i].type)+`</td><td>`+units.join(' ')+`</td><td><b class="icon icon_exp"></b> ${hero.exp}/${hero.max_exp}</td><td>`
+                          +res.join(' ')+`</td><td><b class="icon icon_energy"></b>: ${energy}/${hero.max_energy}</td></tr>`);
             }
             if(text.length==0){
                 /*
@@ -139,8 +178,9 @@ window.addEventListener ("load", function() {
                     units.push()
                 }
                 */
-                text.push('А не захватить ли нам оазис?');
+                //text.push('');
             }
+            text.push('</table>');
             div.innerHTML=text.join('');
         },1000)
         this.saveTimers=function(){
@@ -155,6 +195,9 @@ window.addEventListener ("load", function() {
                 }
             }catch(e){}
         }
+        this.showHide=(show)=>{
+            div.style.display=show?'':'none';
+        }
         var style=document.createElement('style');
         var root=document.createElement('div');
         var shadow=root.attachShadow({mode:'open'});
@@ -164,21 +207,22 @@ border:1px solid #f8dd7b;
 background-color:#fbebaa;
 transition:0.5s;
 position:fixed;
-left:0;
+right:0;
 bottom:0;
 padding: 10px;
-border-radius: 0 10px 0 0;
+border-radius: 10px 0 0 0;
 z-index:10;
 opacity: 0.8;
 font-size: 1vw;
 line-height:1.5vw;
+text-align:right;
 }
 #timers .harvest{color:red;font-size:250%}
 .icon {
     width: 20px;
     height: 20px;
     display: inline-block;
-    background-image: url(/static/images/ico_20.png?v=6);
+    background-image: url(/static/images/ico_20.png?v=11);
     background-repeat: no-repeat;
     vertical-align: middle;
     background-color: transparent;
@@ -198,16 +242,120 @@ line-height:1.5vw;
 .icon_res4 {
     background-position: -120px -40px;
 }
+.icon_energy {
+background-position: -80px -140px;
+}
+.icon_exp {
+    background-position: -60px -40px;
+}
+.icon_level {
+    background-position: 0 -40px;
+}
+.icon_unit1 {
+    background-position: -60px -120px;
+}
+
+.icon_unit2 {
+    background-position: -40px -120px;
+}
+
+.icon_unit3 {
+    background-position: -20px -120px;
+}
 `
         shadow.appendChild(style);
-            div=document.createElement('div');
-            div.id="timers"
-            shadow.appendChild(div);
-            document.body.appendChild(root);
+        div=document.createElement('div');
+        div.id="timers"
+        shadow.appendChild(div);
+        document.body.appendChild(root);
         this.loadTimers();
         return this;
     }
 
+var events=new function(){
+    var _data={
+    balance:{gold:0,gems:0},
+    ushan:{
+        1:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        },
+        2:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        },
+        3:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        }
+    },
+    gena:{
+        1:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        },
+        2:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        },
+        3:{
+            select:{l:0,m:0,b:0},
+            l:[0,0,0],
+            m:[0,0,0],
+            b:[0,0,0]
+        }
+    }
+};
+try{
+    let data=JSON.parse(decodeURI(GM_getValue('events')));
+    if(data){
+        _data=data;
+    }
+}catch(e){
+}
+    var save=function(){
+        GM_setValue('events',encodeURI(JSON.stringify(_data)));
+    }
+    this.select=function(boxes,select){
+        var type=Number(win.ng_data.info._event.type);
+        switch(type){
+            case 4:type="ushan";break;
+            case 3:type="gena";break;
+        }
+        for(let i in win.ng_data.info._event.price){
+            switch(Number(win.ng_data.info._event.price[i].what)){
+                case 1:_data.balance.gold-=win.ng_data.info._event.price[i].amount;break;
+                case 2:_data.balance.gems-=win.ng_data.info._event.price[i].amount;break;
+            }
+        }
+        switch (Number(boxes[select].what)){
+                case 1:_data.balance.gold+=boxes[select].amount;break;
+                case 2:_data.balance.gems+=boxes[select].amount;break;
+        }
+        var curr=_data[type][win.ng_data.info._event.complexity];
+        var ma=Math.max(boxes[1].amount,boxes[2].amount,boxes[3].amount),
+            mi=Math.min(boxes[1].amount,boxes[2].amount,boxes[3].amount),
+            mai=boxes[1].amount==ma?1:(boxes[2].amount==ma?2:3),
+            mii=boxes[1].amount==mi?1:(boxes[2].amount==mi?2:3);
+        curr.select[select==mii?'l':(select==mai?'b':'m')]++;
+        curr.l[mii==1?0:(mii==2?1:2)]++;
+        curr.b[mai==1?0:(mai==2?1:2)]++;
+        curr.m[mii!=1&&mai!=1?0:(mii!=2&&mai!=2?1:2)]++;
+        save();
+        console.log(_data,boxes,select,type)
+    }
+    return this;
+}
 var storage=new function(){
     var data={},db;
     var updateStorage=function(){
@@ -259,13 +407,21 @@ var storage=new function(){
     return this;
 }
     var div,show=true;;
+    document.addEventListener('focusin',function(event){
+        console.log('focus',event);
+        // g_chat_your_message
+    })
     document.body.addEventListener('keypress', function(event){
+        if(event.path[0].className=='g_chat_your_message'){
+            return;
+        }
 		switch(event.code){
 			case 'KeyH':{
 				show=!show;
 				if(div){
 					div.style.display=show?'':'none';
 				}
+                island_timers.showHide(show);
                 if(!show){
                     hideIsland();
                 }
@@ -414,7 +570,7 @@ background-color:#fbebaa;
 */
 transition:0.5s;
 position:fixed;
-right:0;
+left:0;
 bottom:0;
 padding: 10px;
 border-radius: 0 10px 0 0;
