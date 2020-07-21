@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.7
+// @version      0.8
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -28,9 +28,6 @@ window.addEventListener ("load", function() {
                 }
             }catch(e){console.error(e)}
             try{
-                displayLots(xhr.responseJSON.info._castle_data[9].data.orders);
-            }catch(e){console.error(e)}
-            try{
                 displayEvent(xhr.responseJSON.info._event);
             }catch(e){console.error(e)}
             try{
@@ -39,22 +36,21 @@ window.addEventListener ("load", function() {
             try{
                 var params=new URLSearchParams(options.data);
                 switch(params.get('cmd')){
-					/*
-                    case 'do_craft':{
-                        island_timers.setTimer(params.get('island_point'),xhr.responseJSON.result.island_data[params.get('island_point')].type,xhr.responseJSON.result.island_data[params.get('island_point')].back_time+'000');
-                        break;
-                    }
-                    case 'do_leave':{
-                        island_timers.removeTimer(params.get('island_point'));
-                        break;
-                    }
-                    * */
                     case 'event_start':{
                         if(xhr.responseJSON.result.event_boxes){
                             events.select(xhr.responseJSON.result.event_boxes,params.get('casket'));
                         }
                         break;
                     }
+                    case 'do_attack':{
+                        if(xhr.responseJSON.result.report){
+                            fight.result(xhr.responseJSON.result.report);
+                        }
+                        break;
+                    }
+                    case 'market_buy':{
+						setTimeout(fixMarket,50);
+					}
                 }
             }catch(e){}
             try{
@@ -91,32 +87,8 @@ window.addEventListener ("load", function() {
             this.updateTimers();
         }
         this.updateTimer=function(effects){
-            /*
-            var active=[];
-            for(let i in effects){
-                if(effects[i].type=='1090'){
-                    if(timers[effects[i].var1]){
-                        timers[effects[i].var1].harvest=effects[i].time_from+'000';
-                    }
-                    active.push(effects[i].var1);
-                }
-            }
-            for(let i in timers){
-                if(active.indexOf(i)==-1){
-                    this.removeTimer(i);
-                }
-            }
-            */
         }
         this.updateTimers=function(){
-            /*
-            let now=Date.now();
-            for(var i in timers){
-                if(timers[i].end<now){
-                    delete timers[i];
-                }
-            }
-            */
         }
         setInterval(()=>{
             var text=['<table>'];
@@ -127,22 +99,6 @@ window.addEventListener ("load", function() {
             }
             for(let i in timers){
                 let hero=timers[i];
-                /*
-                let sec=(now-timers[i].harvest)/1000;
-                let res=Math.min(5,Math.floor(sec/600));
-                if(now>timers[i].end){
-                    setTimeout(this.updateTimers(),100);
-                    continue;
-                }
-                let harv=(timers[i].end<now+600000||res==5);
-                text.push('<div'+(harv&&res>0?' class="harvest"':'')+'>'+timers[i].name+': '+String(timers[i].icon).repeat(res)+
-                          (res<5 &&(((timers[i].end-now)>sec%600)&&(600-Math.floor(sec%600)<(timers[i].end-now)/1000)
-                )?' через '+time(600-Math.floor(sec%600)):'')+
-                          (harv&&res>0?' СОБИРАТЬ! ':'')+
-                          (timers[i].end<now+3600000?', до возврата '+time(Math.floor((timers[i].end-now)/1000)):'')+
-                          '</div>'
-                         );
-                */
                 let units=[];
                 for(let u=1;u<4;u++){
                     if(hero['unit_'+u]>0){
@@ -170,16 +126,6 @@ window.addEventListener ("load", function() {
                           +win.getLang('name_card'+timers[i].type)+`</td><td>`+units.join(' ')+`</td><td><b class="icon icon_exp"></b> ${hero.exp}/${hero.max_exp}</td><td>`
                           +res.join(' ')+`</td><td><b class="icon icon_energy"></b>: ${energy}/${hero.max_energy}</td></tr>`);
             }
-            if(text.length==0){
-                /*
-                let units=[],
-                    info=win.ng_data.info
-                if(info.unit_1>0){
-                    units.push()
-                }
-                */
-                //text.push('');
-            }
             text.push('</table>');
             div.innerHTML=text.join('');
         },1000)
@@ -203,7 +149,7 @@ window.addEventListener ("load", function() {
         var shadow=root.attachShadow({mode:'open'});
         style.textContent=`#timers{
 pointer-events:none;
-border:1px solid #f8dd7b;
+border:4px solid #0082cd;
 background-color:#fbebaa;
 transition:0.5s;
 position:fixed;
@@ -216,8 +162,8 @@ opacity: 0.8;
 font-size: 1vw;
 line-height:1.5vw;
 text-align:right;
+    border-width: 5px 0 0 5px;
 }
-#timers .harvest{color:red;font-size:250%}
 .icon {
     width: 20px;
     height: 20px;
@@ -406,9 +352,168 @@ var storage=new function(){
     }
     return this;
 }
-    var div,show=true;;
+
+
+// fight_stat
+
+var fight=new function(){
+
+    var _data={
+    };
+try{
+    let data=JSON.parse(decodeURI(GM_getValue('fight_stat')));
+    if(data){
+        _data=data;
+        console.log('fight_stat',data);
+    }
+}catch(e){
+}
+    var save=function(){
+        GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
+        console.log('fight_stat',_data);
+    }
+    var updateResult=function(bm,army,death){
+        army=Number(army);
+        var update=false;
+        if(!_data.hasOwnProperty(bm)){
+            _data[bm]={}
+        }
+        if(!_data[bm].hasOwnProperty(death)){
+            _data[bm][death]={min:army,max:army}
+            update=true;
+        }
+        if(army<_data[bm][death].min){
+            _data[bm][death].min=army;
+            update=true;
+        }else
+        if(army>_data[bm][death].max){
+            _data[bm][death].max=army;
+            update=true;
+        }
+        if(update){
+            save();
+            let log=[];
+            for(let i in _data[bm]){
+                log.push({death:i,min:_data[bm][i].min,max:_data[bm][i].max})
+            }
+            console.table(log);
+        }
+    }
+    this.result=function(report){
+        var bm=0,
+            units=win.ng_data.config_units;
+        if(report.units[1]>0 || report.units[2]>0){
+           // console.log('Нападение не только пчёлками. пропускаем..');
+            return false;
+        }
+        for(let i in report.enemy_units){
+            bm+=report.enemy_units[i]*units[report.enemy_unit_types[i]][0]*units[report.enemy_unit_types[i]][1];
+        }
+        updateResult(bm,report.units[3],report.units_killed[3]);
+
+        //save();
+    }
+    var calcDeath=function(bm,unit1,unit2,unit3){
+        var bma=unit1*6+unit2*8+unit3*16;
+        var death=bm/Math.sqrt(bma);
+        return [
+            Math.ceil(death*(unit1*6/bma)*Math.sqrt(bm/36)),
+            Math.ceil(death*(unit2*8/bma)*Math.sqrt(bm/64)),
+            Math.ceil(death*(unit3*16/bma)*Math.sqrt(bm/256)),
+        ];
+    }
+    this.updateAttackWindow=function(point){
+        var tables=document.querySelectorAll('#action table.ta_c');
+        if(tables.length!=2) return;
+        let bm=win.ng_data.island_data[point].local_army.army_power;
+        let death=calcDeath(bm,
+                      Number(win.ng_data.info._hero_active.unit_1),
+                      Number(win.ng_data.info._hero_active.unit_2),
+                      Number(win.ng_data.info._hero_active.unit_3)
+                  );
+                            ;
+        var row=tables[0].insertRow(2);
+        let c;
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[0])+'</b>';c.className='red_color borderr';
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[1])+'</b>';c.className='red_color borderr';
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[2])+'</b>';c.className='red_color';
+    }
+
+    this.updateAttackEvent=function(){
+        console.log('event');
+        let inputs=document.querySelectorAll('#town_event input[type="number"]');
+        if(inputs.length==3){
+            let bm=win.ng_data.info._event.power
+            let tr=document.querySelector('#town_event .g_table').insertRow(2);
+            let calc=function(){
+                let death=calcDeath(bm,inputs[0].value, inputs[1].value, inputs[2].value);
+                tr.innerHTML='';
+                let c;
+                for(let i=0;i<3;i++){
+                    c=tr.insertCell();
+                    c.textContent=death[i];
+                }
+            }
+            for(let i=0;i<3;i++){
+                inputs[0].addEventListener('change',calc)
+            }
+            calc();
+        }
+    }
+    this.updateHeroWin=()=>{
+        console.log('HERO');
+        let but=document.querySelector('#building10_units .button[data-hero_id]');
+        if(but){
+            let hero=win.ng_data.info._hero_list[but.dataset.hero_id];
+            let tr=document.querySelector('#building10_units .g_table').rows[1];
+            for(let i=0;i<tr.cells.length;i++){
+                let td=tr.cells[i];
+                let b1=document.createElement('div');
+                b1.className='button small';
+                b1.textContent='мин';
+                b1.onclick=function(){let inp=this.parentNode.querySelector('input');inp.value=1;inp.dispatchEvent(new Event('change'));}
+                td.appendChild(b1);
+
+                b1=document.createElement('div');
+                b1.className='button small';
+                b1.textContent='МАКС';
+                b1.onclick=function(){let inp=this.parentNode.querySelector('input');inp.value=Math.min(inp.max,hero.max_units);inp.dispatchEvent(new Event('change'));}
+                td.appendChild(b1);
+            }
+        }
+    }
+    return this;
+}
+// misc
+    var div,show=true;
+
+    var processClick=function(el){
+        if(el.classList){
+            if(el.classList.contains('button')||el.classList.contains('hero_attack')){
+                if(el.dataset.action=='attack' && el.dataset.island_point){
+                    return setTimeout(fight.updateAttackWindow,100,el.dataset.island_point);
+                }
+            }
+            if(el.classList.contains('hero_units_cmd')){
+                return setTimeout(fight.updateHeroWin,100);
+            }
+            if(el.dataset.menu=='town_event'){
+                return setTimeout(fight.updateAttackEvent,100);
+            }
+            if(el.dataset.menu=='show_place'){
+                return setTimeout(fixMarket,100);
+            }
+        }
+    }
+    document.body.addEventListener('click',function(event){
+        for(var i in event.path){
+            if(processClick(event.path[i])){
+                return;
+            }
+        }
+    });
     document.addEventListener('focusin',function(event){
-        console.log('focus',event);
+        //console.log('focus',event);
         // g_chat_your_message
     })
     document.body.addEventListener('keypress', function(event){
@@ -456,22 +561,17 @@ font-size: 1vw;
         document.body.appendChild(root);
 
     }
-    var displayLots=function(lots){
-        if(!div){
-            initDiv();
+    var fixMarket=function(){
+        var tables=document.querySelectorAll('#place9 .g_table')
+        var lots=win.ng_data.info._castle_data[9].data.orders;
+        if(tables.length==4){
+            tables.forEach((table,index)=>{
+                let res=index+1
+                for(let i=0;i<table.rows.length;i++){
+                    table.rows[i].cells[1].innerHTML+=storage.get(lots[res][i].pid)
+                }
+            })
         }
-        var text=['<table style="width:100%;border-color: #e49f63;" cellspacing="0" border="1" cellpadding="3">'];
-        for(let i in lots){
-            text.push('<tr><td colspan="3"><br/><b>'+win.getLang('name_res'+i)+'</b></td></tr><tr><th>Кол</th><th>Цена</th><th>Игрок</th></tr><tr>'+
-                      lots[i].map((lot,index)=>'<td align="right">'
-                                  +win.digits(lot.amount)+'</td><td align="right"><span'
-                                  +(lots[i][index+1]&&(lots[i][index+1].price>lot.price*1.5)?' class="blink"':'')+'>'+
-                                     win.digits(lot.price)+'</span></td><td>'+storage.get(lot.pid)+'</td>')
-                      .join('</tr><tr>')
-                  +'</tr>');
-        }
-        text.push('</table>');
-        div.innerHTML=text.join('');
     }
     var updateNames=function(data,cont,isl){
         [22,25,28,31,34,37].forEach(i=>{
@@ -563,24 +663,19 @@ font-size: 1vw;
         var root=document.createElement('div');
         var shadow=root.attachShadow({mode:'open'});
         style.textContent=`#event{
-pointer-events:none;
-/*
-border:1px solid #f8dd7b;
-background-color:#fbebaa;
-*/
-transition:0.5s;
-position:fixed;
-left:0;
-bottom:0;
-padding: 10px;
-border-radius: 0 10px 0 0;
-z-index:10;
-opacity: 0.8;
-font-size: 14pt;
-/*line-height:1.5vw;*/
+	pointer-events:none;
+	transition:0.5s;
+	position:fixed;
+	left:0;
+	bottom:0;
+	padding: 10px;
+	border-radius: 0 10px 0 0;
+	z-index:10;
+	opacity: 0.8;
+	font-size: 14pt;
 }
 .eb{
-margin: 0 auto;
+	margin: 0 auto;
     width: 246px;
     height: 246px;
     line-height: 120%;
@@ -589,14 +684,14 @@ margin: 0 auto;
 .timer {
     width: 110px;
     height: 30px;
-padding-top:10px;
+	padding-top:10px;
     background: url(/static/images/events/event_ribbon.png);
     left: 0;
     right: 0;
     margin: 0 auto;
     bottom: 50px;
-position:absolute;
-text-align:center;
+	position:absolute;
+	text-align:center;
 }
 `
         shadow.appendChild(style);
