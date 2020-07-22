@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.8
+// @version      0.8.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -50,7 +50,12 @@ window.addEventListener ("load", function() {
                     }
                     case 'market_buy':{
 						setTimeout(fixMarket,50);
+						break;
 					}
+                    case 'hero_units':{
+						setTimeout(fight.updateHeroListWin,50);
+                        break;
+                    }
                 }
             }catch(e){}
             try{
@@ -460,8 +465,30 @@ try{
             calc();
         }
     }
+    this.updateHeroListWin=()=>{
+		let list=win.ng_data.info._hero_list
+		let exp_table=[0];
+		let exp_val=0;
+		for(let i=0;i<20;i++){
+			exp_val+=50+i*100;
+			exp_table.push(exp_val);
+		}
+		let exp={};
+		for(let i in list){
+			exp[i]=exp_table[list[i].lvl]+Number(list[i].exp);
+		}
+		let track=document.querySelector('#place10 .slick-track');
+		let heroes=Array.from(track.querySelectorAll('.heroes')).sort((a,b)=>{
+			
+			return exp[b.dataset.id]-exp[a.dataset.id]
+		})
+		heroes.forEach(h=>{
+			track.appendChild(h)
+		});
+		
+		
+	}
     this.updateHeroWin=()=>{
-        console.log('HERO');
         let but=document.querySelector('#building10_units .button[data-hero_id]');
         if(but){
             let hero=win.ng_data.info._hero_list[but.dataset.hero_id];
@@ -493,6 +520,9 @@ try{
                 if(el.dataset.action=='attack' && el.dataset.island_point){
                     return setTimeout(fight.updateAttackWindow,100,el.dataset.island_point);
                 }
+            }
+            if(el.classList.contains('pos1001')){
+                return setTimeout(fight.updateHeroListWin,100);
             }
             if(el.classList.contains('hero_units_cmd')){
                 return setTimeout(fight.updateHeroWin,100);
