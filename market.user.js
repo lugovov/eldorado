@@ -465,21 +465,22 @@ try{
             calc();
         }
     }
+	let exp_table=[0];
+	let exp_val=0,exp_current=0;
+	for(let i=0;i<20;i++){
+		exp_val+=50+i*100;
+		exp_current+=exp_val;
+		exp_table.push(exp_current);
+	}
+
     this.updateHeroListWin=()=>{
 		let list=win.ng_data.info._hero_list
-		let exp_table=[0];
-		let exp_val=0;
-		for(let i=0;i<20;i++){
-			exp_val+=50+i*100;
-			exp_table.push(exp_val);
-		}
 		let exp={};
 		for(let i in list){
 			exp[i]=exp_table[list[i].lvl]+Number(list[i].exp);
 		}
 		let track=document.querySelector('#place10 .slick-track');
 		let heroes=Array.from(track.querySelectorAll('.heroes')).sort((a,b)=>{
-			
 			return exp[b.dataset.id]-exp[a.dataset.id]
 		})
 		heroes.forEach(h=>{
