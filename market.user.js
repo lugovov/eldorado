@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.8.1
+// @version      0.9
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -15,6 +15,12 @@
 window.addEventListener ("load", function() {
     'use strict';
     var win=window.unsafeWindow;
+    var watch=function(target,config,cb){
+        const observer = new MutationObserver(cb);
+        observer.observe(target, config);
+    }
+
+
     win.jQuery(document).ajaxComplete( function( event, xhr, options ){
         if(options.url=='https://eldorado.botva.ru/fx.php'){
             try{
@@ -46,14 +52,6 @@ window.addEventListener ("load", function() {
                         if(xhr.responseJSON.result.report){
                             fight.result(xhr.responseJSON.result.report);
                         }
-                        break;
-                    }
-                    case 'market_buy':{
-						setTimeout(fixMarket,50);
-						break;
-					}
-                    case 'hero_units':{
-						setTimeout(fight.updateHeroListWin,50);
                         break;
                     }
                 }
@@ -338,7 +336,7 @@ var storage=new function(){
         return '';
     }
     this.set=function(id,info){
-        if(!(id in data) || data[id].name!=info.name){
+        if(!(id in data) || JSON.stringify(data[id])!=JSON.stringify(info)){
             data[id]=info;
             updateStorage()
         }
@@ -473,21 +471,31 @@ try{
 		exp_table.push(exp_current);
 	}
 
-    this.updateHeroListWin=()=>{
+    const sortHeroes=function(track){
 		let list=win.ng_data.info._hero_list
 		let exp={};
 		for(let i in list){
 			exp[i]=exp_table[list[i].lvl]+Number(list[i].exp);
 		}
-		let track=document.querySelector('#place10 .slick-track');
-		let heroes=Array.from(track.querySelectorAll('.heroes')).sort((a,b)=>{
+        let heroes=Array.from(track.querySelectorAll('.heroes')).sort((a,b)=>{
 			return exp[b.dataset.id]-exp[a.dataset.id]
 		})
 		heroes.forEach(h=>{
 			track.appendChild(h)
 		});
-		
-		
+    }
+    this.updateHeroListWin=(el)=>{
+        if(!el)el=document.querySelector('#place10');
+        watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
+            for(let m of list){
+                m.addedNodes.forEach(sl=>{
+                    if(!sl.querySelector)return;
+                    let track=sl.querySelector('.slick-track');
+                    if(track) sortHeroes(track);
+                })
+            }
+        })
+        sortHeroes(el.querySelector('.g_slider_vertical'));
 	}
     this.updateHeroWin=()=>{
         let but=document.querySelector('#building10_units .button[data-hero_id]');
@@ -522,17 +530,11 @@ try{
                     return setTimeout(fight.updateAttackWindow,100,el.dataset.island_point);
                 }
             }
-            if(el.classList.contains('pos1001')){
-                return setTimeout(fight.updateHeroListWin,100);
-            }
             if(el.classList.contains('hero_units_cmd')){
                 return setTimeout(fight.updateHeroWin,100);
             }
             if(el.dataset.menu=='town_event'){
                 return setTimeout(fight.updateAttackEvent,100);
-            }
-            if(el.dataset.menu=='show_place'){
-                return setTimeout(fixMarket,100);
             }
         }
     }
@@ -543,10 +545,6 @@ try{
             }
         }
     });
-    document.addEventListener('focusin',function(event){
-        //console.log('focus',event);
-        // g_chat_your_message
-    })
     document.body.addEventListener('keypress', function(event){
         if(event.path[0].className=='g_chat_your_message'){
             return;
@@ -593,16 +591,27 @@ font-size: 1vw;
 
     }
     var fixMarket=function(){
-        var tables=document.querySelectorAll('#place9 .g_table')
-        var lots=win.ng_data.info._castle_data[9].data.orders;
-        if(tables.length==4){
-            tables.forEach((table,index)=>{
-                let res=index+1
-                for(let i=0;i<table.rows.length;i++){
-                    table.rows[i].cells[1].innerHTML+=storage.get(lots[res][i].pid)
-                }
-            })
+        const fix=(el)=>{
+            var tables=el.querySelectorAll('.g_table')
+            var lots=win.ng_data.info._castle_data[9].data.orders;
+            if(tables.length==4){
+                tables.forEach((table,index)=>{
+                    let res=index+1
+                    for(let i=0;i<table.rows.length;i++){
+                        table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+table.rows[i].cells[1].innerHTML+storage.get(lots[res][i].pid)+'</div>'
+                    }
+                })
+            }
         }
+        watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
+            for(let m of list){
+                m.addedNodes.forEach(sl=>{
+                    if(!sl.classList)return;
+                    if(sl.classList.contains('custom_scroll')) fix(sl)
+                });
+            }
+        });
+        fix(el);
     }
     var updateNames=function(data,cont,isl){
         [22,25,28,31,34,37].forEach(i=>{
@@ -762,4 +771,21 @@ font-size: 1vw;
             }
         }
     })()
+    
+    const addToBody=function(el){
+        if(el.id=='place9'){
+            fixMarket(el);
+        }else
+        if(el.id=='place10'){
+            fight.updateHeroListWin(el);
+        }
+    }
+    watch(document.body,{childList:true},function(mutationsList, observer) {
+        for (let mutation of mutationsList) {
+            if(mutation.type=='childList'){
+                mutation.addedNodes.forEach(addToBody)
+            }
+        }
+    });
+    
 });
