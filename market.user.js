@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.9
+// @version      0.9.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -303,6 +303,32 @@ try{
         save();
         console.log(_data,boxes,select,type)
     }
+    
+    this.updateWindow=(el)=>{
+        let type=getType();
+        if(type===false)return;
+        var curr=_data[type][win.ng_data.info._event.complexity];
+        let div=el.querySelector('.content .g_title+.g_body');
+        let table=document.createElement('table');
+        table.style=`margin-right: auto;
+    width: 450px;`;
+        let size={l:'мало',m:'Средне',b:'МНОГО'}
+        let sum=[];
+        for(let i=0;i<3;i++){
+            sum.push(curr.b[i]+curr.m[i]+curr.l[i]);
+        }
+        for(let s in size){
+            let tr=table.insertRow();
+            let td;
+            td=tr.insertCell();
+            td.textContent=size[s];
+            for(let i=0;i<3;i++){
+                td=tr.insertCell();
+                td.textContent=curr[s][i]+(sum[i]>0?' ('+Math.round(curr[s][i]/sum[i]*100)+'%)':'');
+             }
+        }
+        div.appendChild(table)
+    }    
     return this;
 }
 var storage=new function(){
@@ -416,49 +442,96 @@ try{
 
         //save();
     }
-    var calcDeath=function(bm,unit1,unit2,unit3){
-        var bma=unit1*6+unit2*8+unit3*16;
-        var death=bm/Math.sqrt(bma);
-        return [
-            Math.ceil(death*(unit1*6/bma)*Math.sqrt(bm/36)),
-            Math.ceil(death*(unit2*8/bma)*Math.sqrt(bm/64)),
-            Math.ceil(death*(unit3*16/bma)*Math.sqrt(bm/256)),
-        ];
-    }
+    var unitsmy=[6,8,16];
+    var units=[1,6,8,25,350];
+    var calcDeath=function(t,a,r,c){let e=t/Math.sqrt(a);return r.map((r,h)=>Math.ceil(e*(r*c[h]/a)*Math.sqrt(t/c[h]/c[h])))};
     this.updateAttackWindow=function(point){
         var tables=document.querySelectorAll('#action table.ta_c');
         if(tables.length!=2) return;
-        let bm=win.ng_data.island_data[point].local_army.army_power;
-        let death=calcDeath(bm,
-                      Number(win.ng_data.info._hero_active.unit_1),
-                      Number(win.ng_data.info._hero_active.unit_2),
-                      Number(win.ng_data.info._hero_active.unit_3)
-                  );
-                            ;
+        let local_army=win.ng_data.island_data[point].local_army;
+        let bme=local_army.army_power;
+        let result={my:[0,0,0],enemy:[0,0,0,0,0]};
+        let my=[Number(win.ng_data.info._hero_active.unit_1),
+                Number(win.ng_data.info._hero_active.unit_2),
+                Number(win.ng_data.info._hero_active.unit_3)
+               ],
+            enemy=[0,0,0,0,0];
+        let bm=0;
+        my.forEach((inp,ind)=>{
+            bm+=inp*unitsmy[ind];
+        });
+        for(let i in local_army.units){
+            enemy[local_army.units[i].type-4]=local_army.units[i].amount
+        }
+        if(bm>0){
+            if(bm>bme){
+                result.my=calcDeath(bme,bm,my,unitsmy);
+                result.enemy=enemy
+            }else{
+                result.enemy=calcDeath(bm,bme,enemy,units);
+                result.my=my;
+            }
+        }
+                          ;
         var row=tables[0].insertRow(2);
         let c;
-        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[0])+'</b>';c.className='red_color borderr';
-        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[1])+'</b>';c.className='red_color borderr';
-        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(death[2])+'</b>';c.className='red_color';
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(result.my[0])+'</b>';c.className='red_color borderr';
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(result.my[1])+'</b>';c.className='red_color borderr';
+        c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(result.my[2])+'</b>';c.className='red_color';
+        row=tables[1].insertRow(2);
+        for(let i in local_army.units){
+            c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(result.enemy[local_army.units[i].type-4])+'</b>';c.className='red_color borderr';
+        }
+        c.className='red_color';
     }
 
     this.updateAttackEvent=function(){
-        console.log('event');
         let inputs=document.querySelectorAll('#town_event input[type="number"]');
         if(inputs.length==3){
-            let bm=win.ng_data.info._event.power
-            let tr=document.querySelector('#town_event .g_table').insertRow(2);
+            let bme=win.ng_data.info._event.power
+            let tables=document.querySelectorAll('#town_event .g_table')
+            let tr=tables[0].insertRow(2);
+            let tre=tables[1].insertRow(2);
+
+
             let calc=function(){
-                let death=calcDeath(bm,inputs[0].value, inputs[1].value, inputs[2].value);
+                let result={my:[0,0,0],enemy:[0,0,0,0,0]};
+                let my=[Number(inputs[0].value),
+                        Number(inputs[1].value),
+                        Number(inputs[2].value)
+                       ],
+                    enemy=[0,0,0,0,0];
+                let bm=0;
+                my.forEach((inp,ind)=>{
+                    bm+=inp*unitsmy[ind];
+                });
+                for(let i=1;i<=3;i++){
+                    enemy[i]=win.ng_data.info._event.units
+                }
+                if(bm>0){
+                    if(bm>bme){
+                        result.my=calcDeath(bme,bm,my,unitsmy);
+                        result.enemy=enemy
+                    }else{
+                        result.enemy=calcDeath(bm,bme,enemy,units);
+                        result.my=my;
+                    }
+                }
                 tr.innerHTML='';
                 let c;
                 for(let i=0;i<3;i++){
                     c=tr.insertCell();
-                    c.textContent=death[i];
+                    c.textContent=result.my[i];
                 }
+                tre.innerHTML='';
+                for(let i=1;i<4;i++){
+                    c=tre.insertCell();
+                    c.textContent=result.enemy[i];
+                }
+
             }
             for(let i=0;i<3;i++){
-                inputs[0].addEventListener('change',calc)
+                inputs[i].addEventListener('change',calc)
             }
             calc();
         }
@@ -775,9 +848,10 @@ font-size: 1vw;
     const addToBody=function(el){
         if(el.id=='place9'){
             fixMarket(el);
-        }else
-        if(el.id=='place10'){
+        }else if(el.id=='place10'){
             fight.updateHeroListWin(el);
+        }else if(el.id=='town_event'){
+            events.updateWindow(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
