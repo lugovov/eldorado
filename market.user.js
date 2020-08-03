@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.9.1
+// @version      0.9.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -280,8 +280,8 @@ try{
         switch(type){
             case 4:return "ushan";break;
             case 3:return "gena";break;
-	}
-	return false;
+		}
+		return false;
     }
     this.select=function(boxes,select){
         var type=getType();
@@ -835,8 +835,7 @@ font-size: 1vw;
         }
         return function(event){
             clearTimer();
-            console.log(event);
-            if(event && event.done=="0"){
+            if(event && event.done=="0" && show){
                 div.innerHTML='<div class="eb"><div class="timer"></div></div>'
                 div.querySelector('.eb').style.backgroundImage='url(/static/images/events/npc'+String(event.type).padStart(2,'0')+'_'+String(event.complexity).padStart(2,0)+'.png)';
                 setTimer(div.querySelector('.timer'),event.time);
@@ -846,8 +845,25 @@ font-size: 1vw;
             }
         }
     })()
+    var fixBuildTimer=function(el){
+        let ut=el.getAttribute('timer_end_popup');
+        if(ut){
+            let endDate=new Date(Number(ut+'000'));
+            let nowDate=new Date();
+            let d= document.createElement('div');
+            d.textContent='Завершение '+(nowDate.toLocaleDateString()==endDate.toLocaleDateString()?'':endDate.toLocaleDateString('ru-RU'))+' в '+endDate.toLocaleTimeString('ru-RU');
+            d.style='text-align:center';
+            el.parentNode.appendChild(d);
+        }
+    }
     
     const addToBody=function(el){
+		if(!show)return;
+        let tmp=el.querySelector('.small_count');
+        if(tmp) fixBuildTimer(tmp);
+        tmp=el.querySelector('.middle_count');
+        if(tmp) fixBuildTimer(tmp);
+        		
         if(el.id=='place9'){
             fixMarket(el);
         }else if(el.id=='place10'){
