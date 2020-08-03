@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.9.2
+// @version      0.9.2.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -665,7 +665,7 @@ font-size: 1vw;
         document.body.appendChild(root);
 
     }
-    var fixMarket=function(){
+    var fixMarket=function(el){
         const fix=(el)=>{
             var tables=el.querySelectorAll('.g_table')
             var lots=win.ng_data.info._castle_data[9].data.orders;
