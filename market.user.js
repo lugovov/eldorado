@@ -275,12 +275,16 @@ try{
     var save=function(){
         GM_setValue('events',encodeURI(JSON.stringify(_data)));
     }
-    this.select=function(boxes,select){
+    var getType=function(){
         var type=Number(win.ng_data.info._event.type);
         switch(type){
-            case 4:type="ushan";break;
-            case 3:type="gena";break;
-        }
+            case 4:return "ushan";break;
+            case 3:return "gena";break;
+	}
+	return false;
+    }
+    this.select=function(boxes,select){
+        var type=getType();
         for(let i in win.ng_data.info._event.price){
             switch(Number(win.ng_data.info._event.price[i].what)){
                 case 1:_data.balance.gold-=win.ng_data.info._event.price[i].amount;break;
@@ -301,7 +305,6 @@ try{
         curr.b[mai==1?0:(mai==2?1:2)]++;
         curr.m[mii!=1&&mai!=1?0:(mii!=2&&mai!=2?1:2)]++;
         save();
-        console.log(_data,boxes,select,type)
     }
     
     this.updateWindow=(el)=>{
@@ -310,8 +313,7 @@ try{
         var curr=_data[type][win.ng_data.info._event.complexity];
         let div=el.querySelector('.content .g_title+.g_body');
         let table=document.createElement('table');
-        table.style=`margin-right: auto;
-    width: 450px;`;
+        table.style=`margin-right: auto;width: 450px;`;
         let size={l:'мало',m:'Средне',b:'МНОГО'}
         let sum=[];
         for(let i=0;i<3;i++){
