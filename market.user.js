@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.9.2.1
+// @version      0.9.2.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -453,9 +453,10 @@ try{
         let local_army=win.ng_data.island_data[point].local_army;
         let bme=local_army.army_power;
         let result={my:[0,0,0],enemy:[0,0,0,0,0]};
-        let my=[Number(win.ng_data.info._hero_active.unit_1),
-                Number(win.ng_data.info._hero_active.unit_2),
-                Number(win.ng_data.info._hero_active.unit_3)
+        let _hero=win.ng_data.info._hero_list[win.ng_data.current_hero_info_data.hero];
+        let my=[Number(_hero.unit_1),
+                Number(_hero.unit_2),
+                Number(_hero.unit_3)
                ],
             enemy=[0,0,0,0,0];
         let bm=0;
