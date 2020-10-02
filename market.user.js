@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.9.3
+// @version      0.10
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -42,6 +42,11 @@ window.addEventListener ("load", function() {
             try{
                 var params=new URLSearchParams(options.data);
                 switch(params.get('cmd')){
+                    case 'hero_attack':{
+                        win.ng_data.report=null;
+                        xhr.responseJSON.result.report=null;
+                        break;
+                    }
                     case 'event_start':{
                         if(xhr.responseJSON.result.event_boxes){
                             events.select(xhr.responseJSON.result.event_boxes,params.get('casket'));
@@ -96,9 +101,9 @@ window.addEventListener ("load", function() {
         setInterval(()=>{
             var text=['<table>'];
             var now=Date.now();
-            var active=0;
-            if(win.ng_data.info._hero_active){
-                active=win.ng_data.info._hero_active.id
+            var active=[];
+            if(win.ng_data.info._hero_map){
+                active=Object.values(win.ng_data.info._hero_map)
             }
             for(let i in timers){
                 let hero=timers[i];
@@ -117,17 +122,16 @@ window.addEventListener ("load", function() {
                         res.push('<b class="icon icon_res'+r+'"></b>'+hero['res_'+r]);
                     }
                 }
-                if(!hero.hasOwnProperty('base_energy')){
-                    hero.base_energy=Number(hero.energy);
-                }
-                let energy=Math.min(hero.base_energy+Math.floor((now-new Date(Number(hero.energy_time)*1000))/50000),hero.max_energy);
-                if(hero.enegry!=energy){
-                    hero.energy=energy;
-                }
-                text.push(`<tr `+(active==i?' style="font-weight:bolder"':'')
+                let energy=Math.min(Number(hero.energy)+Math.floor((now-new Date(Number(hero.energy_time)*1000))/50000),hero.max_energy);
+                let work=(hero.work?endTime(Number(hero.work.end+"000")):'');
+                 if (work==''){
+                     work=`<b class="icon icon_energy"></b>: ${energy}/${hero.max_energy}`;
+                 }
+                text.push(`<tr `+(active.indexOf(i)>-1?' style="font-weight:bolder"':'')
                           +`><td><b class="icon icon_level"></b>${hero.lvl}</td><td>`
                           +win.getLang('name_card'+timers[i].type)+`</td><td>`+units.join(' ')+`</td><td><b class="icon icon_exp"></b> ${hero.exp}/${hero.max_exp}</td><td>`
-                          +res.join(' ')+`</td><td><b class="icon icon_energy"></b>: ${energy}/${hero.max_energy}</td></tr>`);
+                          +res.join(' ')+`</td><td>`+work+`</td></tr>`);
+
             }
             text.push('</table>');
             div.innerHTML=text.join('');
@@ -220,6 +224,8 @@ background-position: -80px -140px;
         this.loadTimers();
         return this;
     }
+var calcDeath=function(t,a,r,c){let e=t/Math.sqrt(a);return r.map((r,h)=>Math.ceil(e*(r*c[h]/a)*Math.sqrt(t/c[h]/c[h])))};
+
 
 var events=new function(){
     var _data={
@@ -275,16 +281,16 @@ try{
     var save=function(){
         GM_setValue('events',encodeURI(JSON.stringify(_data)));
     }
-    var getType=function(){
-        var type=Number(win.ng_data.info._event.type);
-        switch(type){
+    var getType=()=>{
+        switch(Number(win.ng_data.info._event.type)){
             case 4:return "ushan";break;
             case 3:return "gena";break;
-		}
-		return false;
+        }
+        return false;
     }
     this.select=function(boxes,select){
-        var type=getType();
+        let type=getType();
+        if(type===false) return;
         for(let i in win.ng_data.info._event.price){
             switch(Number(win.ng_data.info._event.price[i].what)){
                 case 1:_data.balance.gold-=win.ng_data.info._event.price[i].amount;break;
@@ -395,13 +401,13 @@ try{
     let data=JSON.parse(decodeURI(GM_getValue('fight_stat')));
     if(data){
         _data=data;
-        console.log('fight_stat',data);
+       // console.log('fight_stat',data);
     }
 }catch(e){
 }
     var save=function(){
         GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
-        console.log('fight_stat',_data);
+        //console.log('fight_stat',_data);
     }
     var updateResult=function(bm,army,death){
         army=Number(army);
@@ -539,13 +545,13 @@ try{
             calc();
         }
     }
-	let exp_table=[0];
-	let exp_val=0,exp_current=0;
-	for(let i=0;i<20;i++){
-		exp_val+=50+i*100;
-		exp_current+=exp_val;
-		exp_table.push(exp_current);
-	}
+    let exp_table=[0];
+    let exp_val=0,exp_current=0;
+    for(let i=0;i<20;i++){
+        exp_val+=50+i*100;
+        exp_current+=exp_val;
+        exp_table.push(exp_current);
+    }
 
     const sortHeroes=function(track){
 		let list=win.ng_data.info._hero_list
@@ -560,18 +566,65 @@ try{
 			track.appendChild(h)
 		});
     }
+    var fixHeroesWin=(function(){
+        var slideScroll=0;
+        var scrollSize=3;
+        var slickAnimate=false;
+        var initTimer;
+        var startPos;
+        var afterScroll=function(event,slick,currentSlide){
+           //console.log('slide',currentSlide,startPos);
+           slideScroll=currentSlide;
+           clearTimeout(initTimer);
+           initTimer=setTimeout(function(){
+               if(startPos!==false){
+                   //console.log('slide to',startPos);
+                   var pos=startPos;startPos=false;
+                   slick.slickGoTo(pos,true);
+               }
+           },10)
+        }
+        var wheel=function(e) {
+            e.preventDefault();
+            var goSlick;
+            if (e.originalEvent.deltaY > 0) {
+                goSlick=Math.min(
+                    slideScroll+scrollSize,
+                    this.slick.slideCount-this.slick.originalSettings.slidesToShow
+                )
+            } else {
+                goSlick=Math.max(0,slideScroll-scrollSize)
+            }
+            win.jQuery(this).stop(1,1).slick('slickGoTo',goSlick,slickAnimate);
+            slideScroll=goSlick;
+        }
+        return function(el,noinit){
+            setTimeout(function(){
+                startPos=slideScroll;
+                //win.jQuery('.g_slider_vertical.heroes',el).on('init',()=>console.log('init'));
+                var slider=win.jQuery('.g_slider_vertical.heroes',el).slick('slickSetOption',{
+                    slidesToShow:7,
+                    initialSlide:slideScroll
+                },true)
+                slider
+                    .off('afterChange',afterScroll)
+                    .on('afterChange',afterScroll)
+                    .off('wheel', wheel)
+                    .on('wheel', wheel)
+            },10)
+        };
+    })()
     this.updateHeroListWin=(el)=>{
         if(!el)el=document.querySelector('#place10');
         watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
             for(let m of list){
                 m.addedNodes.forEach(sl=>{
                     if(!sl.querySelector)return;
-                    let track=sl.querySelector('.slick-track');
-                    if(track) sortHeroes(track);
+                    fixHeroesWin(el,true);
                 })
             }
         })
-        sortHeroes(el.querySelector('.g_slider_vertical'));
+        fixHeroesWin(el)
 	}
     this.updateHeroWin=()=>{
         let but=document.querySelector('#building10_units .button[data-hero_id]');
@@ -582,15 +635,9 @@ try{
                 let td=tr.cells[i];
                 let b1=document.createElement('div');
                 b1.className='button small';
-                b1.textContent='мин';
+                b1.textContent='1';
                 b1.onclick=function(){let inp=this.parentNode.querySelector('input');inp.value=1;inp.dispatchEvent(new Event('change'));}
-                td.appendChild(b1);
-
-                b1=document.createElement('div');
-                b1.className='button small';
-                b1.textContent='МАКС';
-                b1.onclick=function(){let inp=this.parentNode.querySelector('input');inp.value=Math.min(inp.max,hero.max_units);inp.dispatchEvent(new Event('change'));}
-                td.appendChild(b1);
+                td.insertBefore(b1,td.querySelector('div.button:last-child'));
             }
         }
     }
@@ -704,14 +751,16 @@ font-size: 1vw;
     var displayIsland=function(data){
         if(show){
             for(let i in data){
-                if(data[i].can_attack==1){
+                //if(data[i].can_attack==1){
+                try{
                     let el=document.querySelector('.town_block[data-index="'+i+'"]').querySelector('.map_item_number')
                     if(!el){
                         continue;
                     }
                     el.textContent=data[i].local_army.army_power;
                     el.style.opacity=1;
-                }
+                }catch(e){}
+                //}
             }
         }
     }
@@ -745,7 +794,7 @@ font-size: 1vw;
                     let value=info[type].value+Math.floor((Date.now()-info[type].time)/speed);
                     if(value>=info[type].max){
                         clearInterval(timers[type])
-                        value=info[type].max
+                        value=Math.max(info[type].max,info[type].value)
                     }
                     let el=document.querySelector('.global_header_money_item[data-id="'+info[type].id+'"] .global_header_money_text b')
                     if(el)el.textContent=win.digits(value);
@@ -773,6 +822,19 @@ font-size: 1vw;
             autoUpdate('gems');
         }
     })();
+    var endTime=function(endtime){
+        let time=endtime-Date.now();
+        if(time<0){
+            return '';
+            //el.textContent='--:--:--';
+            //clearTimer();
+        }else{
+            let s=Math.floor(time/1000);
+            let m=Math.floor(s/60);
+            let h=Math.floor(m/60);
+            return [h,m%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
+        }
+    }
     var displayEvent=(function(){
         var div;
         var style=document.createElement('style');
@@ -822,21 +884,18 @@ font-size: 1vw;
         var setTimer=function(el,end){
             let endtime=Number(end+'000');
             timer=setInterval(()=>{
-                let time=endtime-Date.now();
-                if(time<0){
+                let time=endTime(endtime);
+                if(time==''){
                     el.textContent='--:--:--';
                     clearTimer();
                 }else{
-                    let s=Math.floor(time/1000);
-                    let m=Math.floor(s/60);
-                    let h=Math.floor(m/60);
-                    el.textContent=[h,m%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
+                    el.textContent=time;
                 }
             })
         }
         return function(event){
             clearTimer();
-            if(event && event.done=="0" && show){
+            if(event && event.done=="0"){
                 div.innerHTML='<div class="eb"><div class="timer"></div></div>'
                 div.querySelector('.eb').style.backgroundImage='url(/static/images/events/npc'+String(event.type).padStart(2,'0')+'_'+String(event.complexity).padStart(2,0)+'.png)';
                 setTimer(div.querySelector('.timer'),event.time);
@@ -857,20 +916,56 @@ font-size: 1vw;
             el.parentNode.appendChild(d);
         }
     }
-    
+    var fixBuildInfo=function(title,window){
+        if(title.textContent.trim()==String(win.lang_data.requirements).trim()){
+            let placeId=window.id.replace('place');
+
+        }
+    }
+    var fixFightHeroWin=function(el){
+        watch(el.querySelector('.content .custom_scroll'),{childList:true},function(list){
+            for(let m of list){
+                m.addedNodes.forEach(sl=>{
+                    if(!sl.querySelector)return;
+                    fixFightHero(sl)
+//                    let track=sl.querySelector('.slick-track');
+//                    if(track) sortHeroes(track);
+                })
+            }
+        })
+        fixFightHero(el)
+    }
+    var fixFightHero=function(el){
+        let button=el.querySelector('div.button.orange[data-menu="action"]');
+        if(button){
+            let heroId=win.ng_data.info._hero_map[button.getAttribute('data-island_point')]
+            if(heroId){
+                button.removeAttribute('data-menu');
+                button.removeAttribute('data-action');
+                button.classList.add('active_link');
+                button.setAttribute('data-hero_id',heroId);
+                button.setAttribute('data-cmd','hero_attack');
+            }
+        }
+    }
     const addToBody=function(el){
-		if(!show)return;
+        if(!show) return;
         let tmp=el.querySelector('.small_count');
         if(tmp) fixBuildTimer(tmp);
         tmp=el.querySelector('.middle_count');
         if(tmp) fixBuildTimer(tmp);
-        		
+        tmp=el.querySelector('.g_title.orange')
+        if(tmp) fixBuildInfo(tmp,el)
+
         if(el.id=='place9'){
             fixMarket(el);
-        //}else if(el.id=='place10'){
-            //fight.updateHeroListWin(el);
+        }else
+        if(el.id=='place10'){
+            fight.updateHeroListWin(el);
         }else if(el.id=='town_event'){
             events.updateWindow(el);
+        }else if(el.id=='building10_hero_info'){
+            fixFightHeroWin(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
@@ -880,5 +975,5 @@ font-size: 1vw;
             }
         }
     });
-    
+
 });
