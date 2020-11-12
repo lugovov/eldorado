@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Улучшения Эльдорадо
+// @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
 // @version      0.11
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
