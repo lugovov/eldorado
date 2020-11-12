@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Улучшения Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.10
+// @version      0.11
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -16,21 +16,21 @@ window.addEventListener ("load", function() {
     'use strict';
     var win=window.unsafeWindow;
     var watch=function(target,config,cb){
+
+        // Создаем экземпляр наблюдателя с указанной функцией обратного вызова
         const observer = new MutationObserver(cb);
+
+        // Начинаем наблюдение за настроенными изменениями целевого элемента
         observer.observe(target, config);
     }
 
 
     win.jQuery(document).ajaxComplete( function( event, xhr, options ){
         if(options.url=='https://eldorado.botva.ru/fx.php'){
+
             try{
                 if(xhr.responseJSON.result.island_data){
                     updateNames(xhr.responseJSON.result.island_data,xhr.responseJSON.result.continent_index,xhr.responseJSON.result.island_index);
-                }
-            }catch(e){console.error(e)}
-            try{
-                if(xhr.responseJSON.server.rating_list){
-                    updateTop(xhr.responseJSON.server.rating_list);
                 }
             }catch(e){console.error(e)}
             try{
@@ -42,11 +42,6 @@ window.addEventListener ("load", function() {
             try{
                 var params=new URLSearchParams(options.data);
                 switch(params.get('cmd')){
-                    case 'hero_attack':{
-                        win.ng_data.report=null;
-                        xhr.responseJSON.result.report=null;
-                        break;
-                    }
                     case 'event_start':{
                         if(xhr.responseJSON.result.event_boxes){
                             events.select(xhr.responseJSON.result.event_boxes,params.get('casket'));
@@ -59,22 +54,15 @@ window.addEventListener ("load", function() {
                         }
                         break;
                     }
+                    case 'get_rating':{
+                        updateTop(xhr.responseJSON.result.rating);
+                    }
+
                 }
             }catch(e){}
             try{
                 island_timers.setTimer(xhr.responseJSON.info._hero_list);
             }catch(e){}
-            setTimeout(()=>{
-                try{
-                    displayIsland(xhr.responseJSON.result.island_data);
-                }catch(e){console.error(e)}
-                try{
-                    if(xhr.responseJSON.result.continent_data){
-                        updateContinent(xhr.responseJSON.result.continent_data,xhr.responseJSON.result.continent_index);
-                    }
-                }catch(e){console.error(e)}
-            },1000)
-
         }
     });
     var island_timers=new function(){
@@ -312,14 +300,14 @@ try{
         curr.m[mii!=1&&mai!=1?0:(mii!=2&&mai!=2?1:2)]++;
         save();
     }
-    
     this.updateWindow=(el)=>{
         let type=getType();
         if(type===false)return;
         var curr=_data[type][win.ng_data.info._event.complexity];
         let div=el.querySelector('.content .g_title+.g_body');
         let table=document.createElement('table');
-        table.style=`margin-right: auto;width: 450px;`;
+        table.style=`margin-right: auto;
+    width: 450px;`;
         let size={l:'мало',m:'Средне',b:'МНОГО'}
         let sum=[];
         for(let i=0;i<3;i++){
@@ -336,7 +324,7 @@ try{
              }
         }
         div.appendChild(table)
-    }    
+    }
     return this;
 }
 var storage=new function(){
@@ -377,12 +365,19 @@ var storage=new function(){
     }
     this.continent=function(id){
         let stat={};
+        let used={};
         for(let i in data){
             if(data[i].cont==id){
                 if(!(data[i].island in stat)){
                     stat[data[i].island]=0;
                 }
-                stat[data[i].island]++;
+                let pos=data[i].island+':'+data[i].castle
+                if(!used.hasOwnProperty(pos)){
+                    used[pos]=true;
+                    if(stat[data[i].island]<6){
+                        stat[data[i].island]++;
+                    }
+                }
             }
         }
         return stat;
@@ -401,13 +396,13 @@ try{
     let data=JSON.parse(decodeURI(GM_getValue('fight_stat')));
     if(data){
         _data=data;
-       // console.log('fight_stat',data);
+       
     }
 }catch(e){
 }
     var save=function(){
         GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
-        //console.log('fight_stat',_data);
+        
     }
     var updateResult=function(bm,army,death){
         army=Number(army);
@@ -433,7 +428,6 @@ try{
             for(let i in _data[bm]){
                 log.push({death:i,min:_data[bm][i].min,max:_data[bm][i].max})
             }
-            console.table(log);
         }
     }
     this.result=function(report){
@@ -450,6 +444,7 @@ try{
 
         //save();
     }
+
     var unitsmy=[6,8,16];
     var units=[1,6,8,25,350];
     var calcDeath=function(t,a,r,c){let e=t/Math.sqrt(a);return r.map((r,h)=>Math.ceil(e*(r*c[h]/a)*Math.sqrt(t/c[h]/c[h])))};
@@ -480,8 +475,7 @@ try{
                 result.enemy=calcDeath(bm,bme,enemy,units);
                 result.my=my;
             }
-        }
-                          ;
+        };
         var row=tables[0].insertRow(2);
         let c;
         c=row.insertCell();c.innerHTML='<b class="dblock p2">'+(result.my[0])+'</b>';c.className='red_color borderr';
@@ -545,40 +539,18 @@ try{
             calc();
         }
     }
-    let exp_table=[0];
-    let exp_val=0,exp_current=0;
-    for(let i=0;i<20;i++){
-        exp_val+=50+i*100;
-        exp_current+=exp_val;
-        exp_table.push(exp_current);
-    }
-
-    const sortHeroes=function(track){
-		let list=win.ng_data.info._hero_list
-		let exp={};
-		for(let i in list){
-			exp[i]=exp_table[list[i].lvl]+Number(list[i].exp);
-		}
-        let heroes=Array.from(track.querySelectorAll('.heroes')).sort((a,b)=>{
-			return exp[b.dataset.id]-exp[a.dataset.id]
-		})
-		heroes.forEach(h=>{
-			track.appendChild(h)
-		});
-    }
     var fixHeroesWin=(function(){
+
         var slideScroll=0;
         var scrollSize=3;
         var slickAnimate=false;
         var initTimer;
         var startPos;
         var afterScroll=function(event,slick,currentSlide){
-           //console.log('slide',currentSlide,startPos);
            slideScroll=currentSlide;
            clearTimeout(initTimer);
            initTimer=setTimeout(function(){
                if(startPos!==false){
-                   //console.log('slide to',startPos);
                    var pos=startPos;startPos=false;
                    slick.slickGoTo(pos,true);
                }
@@ -598,20 +570,38 @@ try{
             win.jQuery(this).stop(1,1).slick('slickGoTo',goSlick,slickAnimate);
             slideScroll=goSlick;
         }
+        var fix=function(div){
+            var slider=win.jQuery(div);
+            div.slick.slickSetOption({
+                slidesToShow:7,
+                initialSlide:slideScroll
+            },true)
+            slider
+                .off('afterChange',afterScroll)
+                .on('afterChange',afterScroll)
+                .off('wheel', wheel)
+                .on('wheel', wheel);
+
+        }
+
         return function(el,noinit){
-            setTimeout(function(){
+
+            var div=el.querySelector('.g_slider_vertical.heroes');
+            if(div.slick)return fix(div);
+            watch(div,{
+                childList:true
+            },function(list){
+                for(let m of list){
+                   m.addedNodes.forEach(el=>{
+                      if(el.classList.contains('slick-track')){
+                          if(el.childNodes.length>0 && div.slick){
+                              fix(div)
+                          }
+                      }
+                    })
+                }
+            })
                 startPos=slideScroll;
-                //win.jQuery('.g_slider_vertical.heroes',el).on('init',()=>console.log('init'));
-                var slider=win.jQuery('.g_slider_vertical.heroes',el).slick('slickSetOption',{
-                    slidesToShow:7,
-                    initialSlide:slideScroll
-                },true)
-                slider
-                    .off('afterChange',afterScroll)
-                    .on('afterChange',afterScroll)
-                    .off('wheel', wheel)
-                    .on('wheel', wheel)
-            },10)
         };
     })()
     this.updateHeroListWin=(el)=>{
@@ -653,12 +643,15 @@ try{
                     return setTimeout(fight.updateAttackWindow,100,el.dataset.island_point);
                 }
             }
+
             if(el.classList.contains('hero_units_cmd')){
                 return setTimeout(fight.updateHeroWin,100);
             }
+
             if(el.dataset.menu=='town_event'){
                 return setTimeout(fight.updateAttackEvent,100);
             }
+
         }
     }
     document.body.addEventListener('click',function(event){
@@ -668,6 +661,9 @@ try{
             }
         }
     });
+    document.addEventListener('focusin',function(event){
+
+    })
     document.body.addEventListener('keypress', function(event){
         if(event.path[0].className=='g_chat_your_message'){
             return;
@@ -684,6 +680,24 @@ try{
                 }
 				break;
 			}
+            case 'KeyI':{
+                let active=document.querySelector('.global_map_container.active')
+                if(!active.classList.contains('map_island')){
+                    active.classList.remove('active');
+                    document.querySelector('.global_map_container.map_island').classList.add('active');
+
+                }
+                break;
+            }
+            case 'KeyA':{
+                let active=document.querySelector('.global_map_container.active')
+                if(!active.classList.contains('map_continent')){
+                    active.classList.remove('active');
+                    document.querySelector('.global_map_container.map_continent').classList.add('active');
+
+                }
+                break;
+            }
 		}
 	})
     var initDiv=function(){
@@ -739,13 +753,13 @@ font-size: 1vw;
     var updateNames=function(data,cont,isl){
         [22,25,28,31,34,37].forEach(i=>{
             if(data[i].pid>''){
-                storage.set(data[i].pid,{cont:cont,island:isl,name:data[i].name,lvl:data[i].level})
+                storage.set(data[i].pid,{cont:Number(cont),island:Number(isl),name:data[i].name,lvl:Number(data[i].level),castle:i})
             }
         })
     }
     var updateTop=function(data){
         for(var i in data){
-                storage.set(data[i].id,{cont:data[i].continent,island:data[i].island,name:data[i].name,lvl:data[i].level})
+            storage.set(data[i].id,{cont:Number(data[i].continent),island:Number(data[i].island),name:data[i].name,lvl:Number(data[i].level),caslte:Number(data[i].castle)})
         }
     }
     var displayIsland=function(data){
@@ -770,7 +784,7 @@ font-size: 1vw;
             el.style.opacity=null;
         })
     }
-    var updateContinent=function(data,id){
+    var updateContinent=function(id){
         if(show){
             let stat=storage.continent(id);
             document.querySelectorAll('.island_block').forEach(el=>{
@@ -905,13 +919,16 @@ font-size: 1vw;
             }
         }
     })()
+    var buildEndTime=function(endDate){
+        let nowDate=new Date();
+        return (nowDate.toLocaleDateString()==endDate.toLocaleDateString()?'':endDate.toLocaleDateString('ru-RU'))+' в '+endDate.toLocaleTimeString('ru-RU')
+    }
     var fixBuildTimer=function(el){
         let ut=el.getAttribute('timer_end_popup');
         if(ut){
             let endDate=new Date(Number(ut+'000'));
-            let nowDate=new Date();
             let d= document.createElement('div');
-            d.textContent='Завершение '+(nowDate.toLocaleDateString()==endDate.toLocaleDateString()?'':endDate.toLocaleDateString('ru-RU'))+' в '+endDate.toLocaleTimeString('ru-RU');
+            d.textContent='Завершение '+buildEndTime(endDate);
             d.style='text-align:center';
             el.parentNode.appendChild(d);
         }
@@ -922,32 +939,51 @@ font-size: 1vw;
 
         }
     }
-    var fixFightHeroWin=function(el){
-        watch(el.querySelector('.content .custom_scroll'),{childList:true},function(list){
-            for(let m of list){
-                m.addedNodes.forEach(sl=>{
-                    if(!sl.querySelector)return;
-                    fixFightHero(sl)
-//                    let track=sl.querySelector('.slick-track');
-//                    if(track) sortHeroes(track);
-                })
+ 
+    var fixInventory=function(el){
+        let book;
+        let text=[];
+        Object.values(win.ng_data.info.effects).some(v=>(book=v.type==1231?v:null));
+        if(book){
+            text.push('Следующая книга переноса будет достуна: '+buildEndTime(new Date(book.time_to*1000)));
+        }else{
+            text.push('У вас 2 книги переноса замка');
+        }
+        let boost=0;
+        let boostType={
+            1:5,
+            2:15,
+            3: 30,
+            4: 60,
+            5: 120,
+            6: 300,
+            7: 600,
+        }
+        Object.values(win.ng_data.info._items).forEach(i=>{
+            if(boostType[i.type]){
+                boost+=boostType[i.type]*Number(i.amount)*60;
             }
         })
-        fixFightHero(el)
-    }
-    var fixFightHero=function(el){
-        let button=el.querySelector('div.button.orange[data-menu="action"]');
-        if(button){
-            let heroId=win.ng_data.info._hero_map[button.getAttribute('data-island_point')]
-            if(heroId){
-                button.removeAttribute('data-menu');
-                button.removeAttribute('data-action');
-                button.classList.add('active_link');
-                button.setAttribute('data-hero_id',heroId);
-                button.setAttribute('data-cmd','hero_attack');
+        if(boost>0){
+            if(win.ng_data.info._building_progress[0]){
+                let bp=win.ng_data.info._building_progress[0];
+                let end=Number(bp.timer)-boost;
+                let now=new Date().valueOf()/1000;
+                if(now<end){
+                    text.push('Ускоряшек до '+buildEndTime(new Date(end*1000)));
+                }else{
+                    text.push('Ускоряшек хватает на завершение стройки');
+                }
             }
         }
-    }
+        let desc=el.querySelector('.inventory_desc');
+        text.forEach(t=>{
+            let d=document.createElement('div')
+            d.className='p10 ta_c';
+            d.textContent=t
+            desc.appendChild(d);
+        })
+    }    
     const addToBody=function(el){
         if(!show) return;
         let tmp=el.querySelector('.small_count');
@@ -964,8 +1000,10 @@ font-size: 1vw;
             fight.updateHeroListWin(el);
         }else if(el.id=='town_event'){
             events.updateWindow(el);
-        }else if(el.id=='building10_hero_info'){
-            fixFightHeroWin(el);
+        //}else if(el.id=='building10_hero_info'){
+           // fixFightHeroWin(el);
+        }else if(el.id=='inventory'){
+            fixInventory(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
@@ -975,5 +1013,20 @@ font-size: 1vw;
             }
         }
     });
+    watch(document.querySelector('.map_continent .global_map_content'),{childList:true},function(mutationsList, observer) {
+        for (let mutation of mutationsList) {
+            if(mutation.addedNodes.length==37){
+                updateContinent(win.ng_data.continent_index);
+            }
+        }
+    })
+    watch(document.querySelector('.map_island .global_map_content'),{childList:true},function(mutationsList, observer) {
+        for (let mutation of mutationsList) {
+            if(mutation.addedNodes.length==37){
+                displayIsland(win.ng_data.island_data)
+            }
+        }
+    })
+
 
 });
