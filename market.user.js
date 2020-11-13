@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.11
+// @version      0.12
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -983,7 +983,26 @@ font-size: 1vw;
             d.textContent=t
             desc.appendChild(d);
         })
-    }    
+    }
+    var fixBadMan=function(el){
+        var body=el.querySelector('.g_body')
+        body.querySelector('p').remove();
+        let table=document.createElement('table')
+        table.className='g_table mb5 ta_c';
+        var createRow=function(list,first){
+           var row=table.insertRow();
+            const last=list.length-1;
+           list.forEach((item,i)=>{
+               let c=row.insertCell();
+               c.className=(first?('w25p'):(i>0?'ta_r':'ta_l'))+(i==last?'':' borderr');
+               c.innerHTML=item;
+           })
+        }
+        createRow(['Игрок','<b class="icon icon_unit1" title="Улитка"></b>','<b class="icon icon_unit2" title="Сурок"></b>','<b class="icon icon_unit3" title="Пчёл"></b>'],true);
+        Object.values(win.ng_data.info._event_badman.mates).forEach(i=>createRow([i.name,win.digits(i.unit_1),win.digits(i.unit_2),win.digits(i.unit_3)]))
+        body.appendChild(table);
+        //console.log(el);
+    }
     const addToBody=function(el){
         if(!show) return;
         let tmp=el.querySelector('.small_count');
@@ -1000,10 +1019,10 @@ font-size: 1vw;
             fight.updateHeroListWin(el);
         }else if(el.id=='town_event'){
             events.updateWindow(el);
-        //}else if(el.id=='building10_hero_info'){
-           // fixFightHeroWin(el);
         }else if(el.id=='inventory'){
             fixInventory(el);
+        }else if(el.id=='event_badman'){
+            fixBadMan(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
