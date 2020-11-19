@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.12
+// @version      0.12.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -93,6 +93,15 @@ window.addEventListener ("load", function() {
             if(win.ng_data.info._hero_map){
                 active=Object.values(win.ng_data.info._hero_map)
             }
+            if(win.ng_data.info._building_progress){
+                if(win.ng_data.info._building_progress.length>0 ){
+                    win.ng_data.info._building_progress.forEach(b=>{
+                        text.push('<tr><td colspan="5" style="text-align:right">'+win.getLang('building_name'+b.building)+'</td><td>'+endTime(b.timer*1000)+'</td></tr>');
+                    })
+                }else{
+                    text.push('<tr><td colspan="6" style="text-align:center"><b style="color:red">УЛИТКИ ОТЛЫНИВЮТ, ЗАПУСТИ СТРОЙКУ!!!</b></td><tr>');
+                }
+             }            
             for(let i in timers){
                 let hero=timers[i];
                 let units=[];
@@ -734,7 +743,8 @@ font-size: 1vw;
             if(tables.length==4){
                 tables.forEach((table,index)=>{
                     let res=index+1
-                    for(let i=0;i<table.rows.length;i++){
+                    let len=Math.min(lots[res].length,table.rows.length);
+                    for(let i=0;i<len;i++){
                         table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+table.rows[i].cells[1].innerHTML+storage.get(lots[res][i].pid)+'</div>'
                     }
                 })
@@ -846,7 +856,8 @@ font-size: 1vw;
             let s=Math.floor(time/1000);
             let m=Math.floor(s/60);
             let h=Math.floor(m/60);
-            return [h,m%60,s%60].map(v=>String(v).padStart(2,'0')).join(':');
+            let d=Math.floor(h/24);
+            return (d > 0 ? d + ' д. ' : '') + [h % 24, m % 60, s % 60].map(v => String(v).padStart(2, '0')).join(':');
         }
     }
     var displayEvent=(function(){
