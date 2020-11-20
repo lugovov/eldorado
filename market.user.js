@@ -26,7 +26,7 @@ window.addEventListener ("load", function() {
 
 
     win.jQuery(document).ajaxComplete( function( event, xhr, options ){
-        if(options.url=='https://eldorado.botva.ru/fx.php'){
+        if(options.url==win.cmd_link){
 
             try{
                 if(xhr.responseJSON.result.island_data){
