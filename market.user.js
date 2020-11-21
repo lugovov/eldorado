@@ -1023,8 +1023,8 @@ font-size: 1vw;
             }
             for(let i in report.my_unit_types){
                 let t=report.my_unit_types[i]
-                myBm+=bm[t]*report.units[t];
-                myBmd+=bm[t]*report.units_killed[t];
+                myBm+=bm[t]*report.units[i];
+                myBmd+=bm[t]*report.units_killed[i];
             }
             for(let i in report.enemy_unit_types){
                 let t=report.enemy_unit_types[i]
