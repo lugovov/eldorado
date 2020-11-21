@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.12.2
+// @version      0.12.2.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1028,8 +1028,8 @@ font-size: 1vw;
             }
             for(let i in report.enemy_unit_types){
                 let t=report.enemy_unit_types[i]
-                enBm+=bm[t]*report.enemy_units[t];
-                enBmd+=bm[t]*report.enemy_units_killed[t];
+                enBm+=bm[t]*report.enemy_units[i];
+                enBmd+=bm[t]*report.enemy_units_killed[i];
             }
             let table=el.querySelector('.g_table')
             let row=table.insertRow()
