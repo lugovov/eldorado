@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.12.1
+// @version      0.12.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1012,8 +1012,40 @@ font-size: 1vw;
         createRow(['Игрок','<b class="icon icon_unit1" title="Улитка"></b>','<b class="icon icon_unit2" title="Сурок"></b>','<b class="icon icon_unit3" title="Пчёл"></b>'],true);
         Object.values(win.ng_data.info._event_badman.mates).forEach(i=>createRow([i.name,win.digits(i.unit_1),win.digits(i.unit_2),win.digits(i.unit_3)]))
         body.appendChild(table);
-        //console.log(el);
     }
+    const fixReport=function(el){
+        var myBm=0,enBm=0,myBmd=0,enBmd=0;
+        if(win.ng_data.report){
+            let report=win.ng_data.report;
+            let bm={};
+            for(let i in win.ng_data.config_units){
+                bm[i]=win.ng_data.config_units[i][0]*win.ng_data.config_units[i][1];
+            }
+            for(let i in report.my_unit_types){
+                let t=report.my_unit_types[i]
+                myBm+=bm[t]*report.units[t];
+                myBmd+=bm[t]*report.units_killed[t];
+            }
+            for(let i in report.enemy_unit_types){
+                let t=report.enemy_unit_types[i]
+                enBm+=bm[t]*report.enemy_units[t];
+                enBmd+=bm[t]*report.enemy_units_killed[t];
+            }
+            let table=el.querySelector('.g_table')
+            let row=table.insertRow()
+            let td=row.insertCell()
+            td=row.insertCell()
+            td.colSpan=3;
+            td.className='borderr';
+            td.textContent='Потери: '+(Math.round(myBmd*100000/myBm)/1000)+'%';
+            td=row.insertCell()
+            td.colSpan=3;
+            td.textContent='Потери: '+(Math.round(enBmd*100000/enBm)/1000)+'%';
+            td=row.insertCell()
+
+        }
+    }
+
     const addToBody=function(el){
         if(!show) return;
         let tmp=el.querySelector('.small_count');
@@ -1034,6 +1066,8 @@ font-size: 1vw;
             fixInventory(el);
         }else if(el.id=='event_badman'){
             fixBadMan(el);
+        }else if(el.id=='report'){
+            fixReport(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
