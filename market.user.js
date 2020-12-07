@@ -1,11 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-<<<<<<< HEAD
-// @version      0.12.2
-=======
-// @version      0.12.2.1
->>>>>>> 82b8bfd9da90b8d4a7b85baabfa5b72848a37f32
+// @version      0.12.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
