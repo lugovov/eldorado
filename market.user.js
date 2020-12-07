@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.12.1
+// @version      0.12.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -36,9 +36,11 @@ window.addEventListener ("load", function() {
             try{
                 displayEvent(xhr.responseJSON.info._event);
             }catch(e){console.error(e)}
+            /*
             try{
                 createMoneyTimer(xhr.responseJSON.info);
             }catch(e){console.error(e)}
+            */
             try{
                 var params=new URLSearchParams(options.data);
                 switch(params.get('cmd')){
@@ -614,6 +616,7 @@ try{
         };
     })()
     this.updateHeroListWin=(el)=>{
+        return;
         if(!el)el=document.querySelector('#place10');
         watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
             for(let m of list){
@@ -745,7 +748,9 @@ font-size: 1vw;
                     let res=index+1
                     let len=Math.min(lots[res].length,table.rows.length);
                     for(let i=0;i<len;i++){
-                        table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+table.rows[i].cells[1].innerHTML+storage.get(lots[res][i].pid)+'</div>'
+                        table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+                            table.rows[i].cells[1].innerHTML.replace(/1\s+<b class="icon icon_res."><\/b>\s+за\s+/,'')
+                            +storage.get(lots[res][i].pid)+'</div>'
                     }
                 })
             }
@@ -807,6 +812,7 @@ font-size: 1vw;
             })
         }
     }
+    /*
     var createMoneyTimer=(function(){
         var timers={}
         var info={};
@@ -846,6 +852,7 @@ font-size: 1vw;
             autoUpdate('gems');
         }
     })();
+    */
     var endTime=function(endtime){
         let time=endtime-Date.now();
         if(time<0){
@@ -952,14 +959,16 @@ font-size: 1vw;
     }
  
     var fixInventory=function(el){
-        let book;
+        // let book;
         let text=[];
+        /*
         Object.values(win.ng_data.info.effects).some(v=>(book=v.type==1231?v:null));
         if(book){
             text.push('Следующая книга переноса будет достуна: '+buildEndTime(new Date(book.time_to*1000)));
         }else{
             text.push('У вас 2 книги переноса замка');
         }
+        */
         let boost=0;
         let boostType={
             1:5,
