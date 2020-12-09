@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.12.3
+// @version      0.13
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -103,7 +103,7 @@ window.addEventListener ("load", function() {
                 }else{
                     text.push('<tr><td colspan="6" style="text-align:center"><b style="color:red">УЛИТКИ ОТЛЫНИВЮТ, ЗАПУСТИ СТРОЙКУ!!!</b></td><tr>');
                 }
-             }            
+             }
             for(let i in timers){
                 let hero=timers[i];
                 let units=[];
@@ -361,7 +361,15 @@ var storage=new function(){
         }
     }catch(e){}
     var timer=false;
-
+    this.getByCoord=function(a,i,p){
+        let d
+        for(let k in data){
+            d=data[k];
+            if(d.cont==a && d.island==i && d.caslte==p){
+                return String(d.name).replace(/</g,'&lt;')
+            }
+        }
+    }
     this.get=function(id){
         if(id in data){
             return String(data[id].name).replace(/</g,'&lt;')
@@ -407,13 +415,13 @@ try{
     let data=JSON.parse(decodeURI(GM_getValue('fight_stat')));
     if(data){
         _data=data;
-       
+
     }
 }catch(e){
 }
     var save=function(){
         GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
-        
+
     }
     var updateResult=function(bm,army,death){
         army=Number(army);
@@ -957,7 +965,7 @@ font-size: 1vw;
 
         }
     }
- 
+
     var fixInventory=function(el){
         // let book;
         let text=[];
@@ -1053,40 +1061,21 @@ font-size: 1vw;
             td=row.insertCell()
 
         }
-    }    
-    const fixReport=function(el){
-        var myBm=0,enBm=0,myBmd=0,enBmd=0;
-        if(win.ng_data.report){
-            let report=win.ng_data.report;
-            let bm={};
-            for(let i in win.ng_data.config_units){
-                bm[i]=win.ng_data.config_units[i][0]*win.ng_data.config_units[i][1];
-            }
-            for(let i in report.my_unit_types){
-                let t=report.my_unit_types[i]
-                myBm+=bm[t]*report.units[i];
-                myBmd+=bm[t]*report.units_killed[i];
-            }
-            for(let i in report.enemy_unit_types){
-                let t=report.enemy_unit_types[i]
-                enBm+=bm[t]*report.enemy_units[i];
-                enBmd+=bm[t]*report.enemy_units_killed[i];
-            }
-            let table=el.querySelector('.g_table')
-            let row=table.insertRow()
-            let td=row.insertCell()
-            td=row.insertCell()
-            td.colSpan=3;
-            td.className='borderr';
-            td.textContent='Потери: '+(Math.round(myBmd*100000/myBm)/1000)+'%';
-            td=row.insertCell()
-            td.colSpan=3;
-            td.textContent='Потери: '+(Math.round(enBmd*100000/enBm)/1000)+'%';
-            td=row.insertCell()
-
+    }
+    var fix={
+        pvp(el){
+            let rows=el.querySelectorAll('table tr td:nth-child(2)')
+            rows.forEach(t=>{
+                let m=t.textContent.match(/(\d+)\s(\d+)\s(\d+)/);
+                let newname=storage.getByCoord(m[1],m[2],m[3]);
+                if(newname != undefined){
+                    t.textContent=newname+' ['+m[1]+':'+m[2]+':'+m[3]+']';
+                }
+                console.log(m,storage.getByCoord(m[1],m[2],m[3]));
+            })
+            console.log('pvp',el);
         }
     }
-
     const addToBody=function(el){
         if(!show) return;
         let tmp=el.querySelector('.small_count');
@@ -1109,6 +1098,8 @@ font-size: 1vw;
             fixBadMan(el);
         }else if(el.id=='report'){
             fixReport(el);
+        }else if(el.id=='st_events'){
+            fix.pvp(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
