@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13.1
+// @version      0.13.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1093,14 +1093,38 @@ font-size: 1vw;
         }
     },
         st_events(el){
-            let rows=el.querySelectorAll('table tr td:nth-child(2)')
-            rows.forEach(t=>{
+            let rows=el.querySelectorAll('table tr');
+            let my=win.ng_data.info._pvp_data.events_my;
+            rows.forEach(row=>{
+                let t=row.cells[1];
                 let m=t.textContent.match(/(\d+)\s(\d+)\s(\d+)/);
                 let newname=storage.getByCoord(m[1],m[2],m[3]);
                 if(newname != undefined){
                     t.textContent=newname+' ['+m[1]+':'+m[2]+':'+m[3]+']';
                 }
-                console.log(m,storage.getByCoord(m[1],m[2],m[3]));
+                let timer=row.querySelector('[timer_end_popup]');
+                let time=timer.getAttribute('timer_end_popup');
+                let info;
+                for(let i in my){
+                    if(my[i].continent==m[1] && my[i].island==m[2] && my[i].castle==m[3] && my[i].time==time){
+                        info=my[i];
+                        break;
+                    }
+                }
+                if(info && info.type==3){
+                    let cell=row.cells[2];
+                    cell.appendChild(document.createElement('br'));
+                    cell.appendChild(document.createTextNode(win.digits(info.loot_gold)));
+                    let b=document.createElement('b');
+                    b.className='icon icon_money1'
+                    b.setAttribute('title',win.lang_data.name_money1);
+                    cell.appendChild(b);
+                    cell.appendChild(document.createTextNode(win.digits(info.loot_gems)));
+                    b=document.createElement('b');
+                    b.className='icon icon_money2'
+                    b.setAttribute('title',win.lang_data.name_money2);
+                    cell.appendChild(b);
+                }
             })
             console.log('pvp',el);
         },
@@ -1139,7 +1163,6 @@ font-size: 1vw;
 //            fixBadMan(el);
         }else if(el.id>'' && fix.hasOwnProperty(el.id)){
             fix[el.id](el);
-            //fix.profile(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
