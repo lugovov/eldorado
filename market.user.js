@@ -59,6 +59,9 @@ window.addEventListener ("load", function() {
                     case 'get_rating':{
                         updateTop(xhr.responseJSON.result.rating);
                     }
+                    case 'get_pvp_info':{
+                        updatePlayerInfo(params,xhr.responseJSON.result.pvp_data);
+                    }
 
                 }
             }catch(e){}
@@ -784,6 +787,15 @@ font-size: 1vw;
         for(var i in data){
             storage.set(data[i].id,{cont:Number(data[i].continent),island:Number(data[i].island),name:data[i].name,lvl:Number(data[i].level),caslte:Number(data[i].castle)})
         }
+    }
+    var updatePlayerInfo=function(params,data){
+        storage.set(data.id,{
+            cont:Number(params.get('continent')),
+            island:Number(params.get('island')),
+            name:data.name,
+            lvl:Number(data.main_level),
+            caslte:Number(params.get('castle'))
+        })
     }
     var displayIsland=function(data){
         if(show){
