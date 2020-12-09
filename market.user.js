@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13
+// @version      0.13.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1024,6 +1024,7 @@ font-size: 1vw;
             desc.appendChild(d);
         })
     }
+    /*
     var fixBadMan=function(el){
         var body=el.querySelector('.g_body')
         body.querySelector('p').remove();
@@ -1042,7 +1043,10 @@ font-size: 1vw;
         Object.values(win.ng_data.info._event_badman.mates).forEach(i=>createRow([i.name,win.digits(i.unit_1),win.digits(i.unit_2),win.digits(i.unit_3)]))
         body.appendChild(table);
     }
-    const fixReport=function(el){
+    */
+    
+    const fix={
+        report(el){
         var myBm=0,enBm=0,myBmd=0,enBmd=0;
         if(win.ng_data.report){
             let report=win.ng_data.report;
@@ -1060,7 +1064,21 @@ font-size: 1vw;
                 enBm+=bm[t]*report.enemy_units[i];
                 enBmd+=bm[t]*report.enemy_units_killed[i];
             }
-            let table=el.querySelector('.g_table')
+            let table=el.querySelector('.g_table');
+            let m=report.name.match(/^(\d+):(\d+):(\d+)$/);
+            if(m){
+                let newname=storage.getByCoord(m[1],m[2],m[3]);
+                if(newname != undefined){
+                    table.rows[0].cells[0].querySelector('b.red_color').textContent=newname+' ['+m[0]+']';
+                }
+            }
+            m=report.enemy_name.match(/^(\d+):(\d+):(\d+)$/);
+            if(m){
+                let newname=storage.getByCoord(m[1],m[2],m[3]);
+                if(newname != undefined){
+                    table.rows[0].cells[1].querySelector('b.green_color').textContent=newname+' ['+m[0]+']';
+                }
+            }
             let row=table.insertRow()
             let td=row.insertCell()
             td=row.insertCell()
@@ -1073,9 +1091,8 @@ font-size: 1vw;
             td=row.insertCell()
 
         }
-    }
-    var fix={
-        pvp(el){
+    },
+        st_events(el){
             let rows=el.querySelectorAll('table tr td:nth-child(2)')
             rows.forEach(t=>{
                 let m=t.textContent.match(/(\d+)\s(\d+)\s(\d+)/);
@@ -1086,6 +1103,18 @@ font-size: 1vw;
                 console.log(m,storage.getByCoord(m[1],m[2],m[3]));
             })
             console.log('pvp',el);
+        },
+        profile_dis(el){
+            let profile=win.ng_data.profile;
+            let div=document.createElement('div');
+            div.className='button small cmd_send_squad';
+            div.dataset.cmd='stash_send_squad';
+            div.dataset.coord1=profile.continent;
+            div.dataset.coord1=profile.island;
+            div.dataset.coord1=profile.castle;
+            div.textContent='Отправить отряд';
+            el.querySelector('div.container > div.content > div').appendChild(div);
+            //debugger;
         }
     }
     const addToBody=function(el){
@@ -1106,12 +1135,11 @@ font-size: 1vw;
             events.updateWindow(el);
         }else if(el.id=='inventory'){
             fixInventory(el);
-        }else if(el.id=='event_badman'){
-            fixBadMan(el);
-        }else if(el.id=='report'){
-            fixReport(el);
-        }else if(el.id=='st_events'){
-            fix.pvp(el);
+//        }else if(el.id=='event_badman'){
+//            fixBadMan(el);
+        }else if(el.id>'' && fix.hasOwnProperty(el.id)){
+            fix[el.id](el);
+            //fix.profile(el);
         }
     }
     watch(document.body,{childList:true},function(mutationsList, observer) {
