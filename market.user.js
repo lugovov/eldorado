@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13.2
+// @version      0.13.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1044,8 +1044,30 @@ font-size: 1vw;
         body.appendChild(table);
     }
     */
-    
+   const addFight=function(event){
+        let m=String(this.dataset.coord).match(/(\d+);(\d+);(\d+)/)
+        if(m){
+            localStorage.setItem('stash_coord1','"'+m[1]+'"');
+            localStorage.setItem('stash_coord2','"'+m[2]+'"');
+            localStorage.setItem('stash_coord3','"'+m[3]+'"');
+
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
+    }
     const fix={
+        rating(el){
+            Array.from(el.querySelectorAll('.tab_block[data-tab="1"] .rating_cont.custom_scroll tr'))
+                .forEach(row=>{
+                let b=document.createElement('b');
+                b.className='icon';
+                b.style.backgroundPosition='-80px -60px';
+                b.dataset.coord=row.cells[2].textContent;
+                b.onclick=addFight;
+                row.cells[2].insertBefore(b,row.cells[2].firstChild);
+            })
+        },
         report(el){
         var myBm=0,enBm=0,myBmd=0,enBmd=0;
         if(win.ng_data.report){
