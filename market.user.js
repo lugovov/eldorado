@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13.3
+// @version      0.13.3.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1133,7 +1133,7 @@ font-size: 1vw;
                         break;
                     }
                 }
-                if(info && info.type==3){
+                if(info && info.type==3 && row.cells.length==4){
                     let cell=row.cells[2];
                     cell.appendChild(document.createElement('br'));
                     cell.appendChild(document.createTextNode(win.digits(info.loot_gold)));
