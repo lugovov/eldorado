@@ -1214,6 +1214,7 @@ font-size: 1vw;
                 div.appendChild(title);
                 let body=document.createElement('div');
                 body.className='g_body dflex';
+                body.style='    flex-wrap: wrap;';
                 let setValue=function(inp,value){
                     inp.value=value;
                     inp.dispatchEvent(new Event('change'));
