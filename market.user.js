@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13.3.1
+// @version      0.13.4
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -58,9 +58,27 @@ window.addEventListener ("load", function() {
                     }
                     case 'get_rating':{
                         updateTop(xhr.responseJSON.result.rating);
+                        break;
                     }
                     case 'get_pvp_info':{
                         updatePlayerInfo(params,xhr.responseJSON.result.pvp_data);
+                        break;
+                    }
+                    case 'stash_send_squad':{
+                        let data;
+                        try{
+                            data=store.get('last_fight',[])
+                        }catch(e){
+                            data=[]
+                        }
+                        let coord=params.get('coord1')+':'+params.get('coord2')+':'+params.get('coord3');
+                        let exists=data.indexOf(coord)
+                        if(exists>-1){
+                            data.splice(exists,1);
+                        }
+                        data.unshift(coord);
+                        store.set('last_fight',data);
+                        break;
                     }
 
                 }
@@ -70,6 +88,18 @@ window.addEventListener ("load", function() {
             }catch(e){}
         }
     });
+let store=new function(){
+    this.get=function(name,def){
+        try{
+            return JSON.parse(decodeURI(GM_getValue(name)));
+        }catch(e){
+            return def;
+        }
+    }
+    this.set=function(name,value){
+        GM_setValue(name, encodeURI(JSON.stringify(value)));
+    }
+}
     var island_timers=new function(){
         var timers={},div,display;
         var time=function(sec){
@@ -274,14 +304,15 @@ var events=new function(){
     }
 };
 try{
-    let data=JSON.parse(decodeURI(GM_getValue('events')));
+    let data=store.get('events');//JSON.parse(decodeURI(GM_getValue('events')));
     if(data){
         _data=data;
     }
 }catch(e){
 }
     var save=function(){
-        GM_setValue('events',encodeURI(JSON.stringify(_data)));
+        store.set('events',_data);
+        //GM_setValue('events',encodeURI(JSON.stringify(_data)));
     }
     var getType=()=>{
         switch(Number(win.ng_data.info._event.type)){
@@ -341,16 +372,19 @@ try{
     }
     return this;
 }
+
 var storage=new function(){
     var data={},db;
     var updateStorage=function(){
         clearTimeout(timer);
         timer=setTimeout(()=>{
-            GM_setValue('pid_names', encodeURI(JSON.stringify(data)));
+            store.set('pid_names',data);
+            //GM_setValue('pid_names', encodeURI(JSON.stringify(data)));
         },1000)
     }
     try{
-        db=decodeURI(GM_getValue('pid_names'));
+        db=store.get('pid_names');//decodeURI(GM_getValue('pid_names'));
+        /*
         if(!db){
             db=win.localStorage.getItem('pid_names');
             if(db){
@@ -359,6 +393,7 @@ var storage=new function(){
             }
         }
         db=JSON.parse(db);
+        */
         if(db){
             data=db;
         }
@@ -414,16 +449,17 @@ var fight=new function(){
 
     var _data={
     };
-try{
-    let data=JSON.parse(decodeURI(GM_getValue('fight_stat')));
-    if(data){
-        _data=data;
+    try{
+        let data=store.get('fight_stat');//JSON.parse(decodeURI(GM_getValue('fight_stat')));
+        if(data){
+            _data=data;
 
+        }
+    }catch(e){
     }
-}catch(e){
-}
     var save=function(){
-        GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
+        store.save('fight_stat',_data);
+        //GM_setValue('fight_stat',encodeURI(JSON.stringify(_data)));
 
     }
     var updateResult=function(bm,army,death){
@@ -750,32 +786,7 @@ font-size: 1vw;
         document.body.appendChild(root);
 
     }
-    var fixMarket=function(el){
-        const fix=(el)=>{
-            var tables=el.querySelectorAll('.g_table')
-            var lots=win.ng_data.info._castle_data[9].data.orders;
-            if(tables.length==4){
-                tables.forEach((table,index)=>{
-                    let res=index+1
-                    let len=Math.min(lots[res].length,table.rows.length);
-                    for(let i=0;i<len;i++){
-                        table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
-                            table.rows[i].cells[1].innerHTML.replace(/1\s+<b class="icon icon_res."><\/b>\s+за\s+/,'')
-                            +storage.get(lots[res][i].pid)+'</div>'
-                    }
-                })
-            }
-        }
-        watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
-            for(let m of list){
-                m.addedNodes.forEach(sl=>{
-                    if(!sl.classList)return;
-                    if(sl.classList.contains('custom_scroll')) fix(sl)
-                });
-            }
-        });
-        fix(el);
-    }
+
     var updateNames=function(data,cont,isl){
         [22,25,28,31,34,37].forEach(i=>{
             if(data[i].pid>''){
@@ -1161,6 +1172,81 @@ font-size: 1vw;
             div.textContent='Отправить отряд';
             el.querySelector('div.container > div.content > div').appendChild(div);
             //debugger;
+        },
+        place9(el){
+            const fix=(el)=>{
+                var tables=el.querySelectorAll('.g_table')
+                var lots=win.ng_data.info._castle_data[9].data.orders;
+                if(tables.length==4){
+                    tables.forEach((table,index)=>{
+                        let res=index+1
+                        let len=Math.min(lots[res].length,table.rows.length);
+                        for(let i=0;i<len;i++){
+                            table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
+                                table.rows[i].cells[1].innerHTML.replace(/1\s+<b class="icon icon_res."><\/b>\s+за\s+/,'')
+                                +storage.get(lots[res][i].pid)+'</div>'
+                        }
+                    })
+                }
+            }
+            watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
+                for(let m of list){
+                    m.addedNodes.forEach(sl=>{
+                        if(!sl.classList)return;
+                        if(sl.classList.contains('custom_scroll')) fix(sl)
+                    });
+                }
+            });
+            fix(el);
+        },
+        place5(el){
+            let fix=function(el){
+                if(!el)return;
+                if(!el.classList.contains('tab_block')) return;
+                if(el.dataset.tab!=2) return;
+                let last=store.get('last_fight');
+                let tab=el;
+                //console.log('last_fight',last,tab);
+                let div=document.createElement('div');
+                let title=document.createElement('div');
+                title.textContent='Прошлые нападения'
+                title.className='g_title';
+                div.appendChild(title);
+                let body=document.createElement('div');
+                body.className='g_body dflex';
+                let setValue=function(inp,value){
+                    inp.value=value;
+                    inp.dispatchEvent(new Event('change'));
+                }
+                let setCoord=function(coord){
+                    setValue(el.querySelector('input.coord1'),coord[0]);
+                    setValue(el.querySelector('input.coord2'),coord[1]);
+                    setValue(el.querySelector('input.coord3'),coord[2]);
+                }
+                last.forEach(l=>{
+                    let coord=l.split(':');
+                    if(coord.length!=3)return;
+                    let name=storage.getByCoord(coord[0],coord[1],coord[2]);
+                    let btn=document.createElement('div');
+                    btn.className='button small'
+                    btn.onclick=()=>{
+                        setCoord(coord);
+                    }
+                    btn.textContent=(name||'')+' ['+l+']';
+                    body.appendChild(btn);
+                })
+                div.appendChild(body);
+                tab.appendChild(div);
+            }
+            watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
+                for(let m of list){
+                    m.addedNodes.forEach(sl=>{
+                        if(!sl.classList)return;
+                        if(sl.classList.contains('custom_scroll')) fix(sl)
+                    });
+                }
+            })
+            fix(el.querySelector('.tab_block[data-tab="2"]'));
         }
     }
     const addToBody=function(el){
@@ -1172,9 +1258,6 @@ font-size: 1vw;
         tmp=el.querySelector('.g_title.orange')
         if(tmp) fixBuildInfo(tmp,el)
 
-        if(el.id=='place9'){
-            fixMarket(el);
-        }else
         if(el.id=='place10'){
             fight.updateHeroListWin(el);
         }else if(el.id=='town_event'){
