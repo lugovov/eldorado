@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.13.4
+// @version      0.14
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -64,6 +64,10 @@ window.addEventListener ("load", function() {
                         updatePlayerInfo(params,xhr.responseJSON.result.pvp_data);
                         break;
                     }
+                    case 'get_report':{
+                        mailBox.report(xhr.responseJSON.result.report);
+                        break;
+                    }
                     case 'stash_send_squad':{
                         let data;
                         try{
@@ -88,18 +92,6 @@ window.addEventListener ("load", function() {
             }catch(e){}
         }
     });
-let store=new function(){
-    this.get=function(name,def){
-        try{
-            return JSON.parse(decodeURI(GM_getValue(name)));
-        }catch(e){
-            return def;
-        }
-    }
-    this.set=function(name,value){
-        GM_setValue(name, encodeURI(JSON.stringify(value)));
-    }
-}
     var island_timers=new function(){
         var timers={},div,display;
         var time=function(sec){
@@ -258,6 +250,20 @@ background-position: -80px -140px;
     }
 var calcDeath=function(t,a,r,c){let e=t/Math.sqrt(a);return r.map((r,h)=>Math.ceil(e*(r*c[h]/a)*Math.sqrt(t/c[h]/c[h])))};
 
+    var store=new function(){
+        this.load=this.get=function(name,def){
+            let v;
+            try{
+                v=JSON.parse(decodeURI(GM_getValue(name)))
+            }catch(e){
+                v=def;
+            }
+            return v;
+        }
+        this.set=this.save=function(name,value){
+            GM_setValue(name,encodeURI(JSON.stringify(value)));
+        }
+    }
 
 var events=new function(){
     var _data={
@@ -372,7 +378,6 @@ try{
     }
     return this;
 }
-
 var storage=new function(){
     var data={},db;
     var updateStorage=function(){
@@ -383,8 +388,8 @@ var storage=new function(){
         },1000)
     }
     try{
-        db=store.get('pid_names');//decodeURI(GM_getValue('pid_names'));
-        /*
+        db=store.get('pid_names');// decodeURI(GM_getValue('pid_names'));
+            /*
         if(!db){
             db=win.localStorage.getItem('pid_names');
             if(db){
@@ -712,6 +717,36 @@ var fight=new function(){
             }
 
         }
+    }
+    var mailBox=new function(){
+        let box=store.get('mail',{});
+        let to
+        let save=function(){
+            clearTimeout(to)
+            to=setTimeout(()=>{store.set('mail',box)},100);
+        }
+        this.mail=function(id,mail){
+            box[id]=Object.assign(box[id]||{},mail);
+            save()
+        }
+        this.report=function(report){
+            if(report.report_id){
+                box[report.report_id]=Object.assign(box[report.report_id]||{},report);
+                save();
+            }
+        }
+        this.get=function(id){
+            return box[id];
+        }
+        this.getEnemyLast=function(name){
+            let letters=[];
+            for(let i in box){
+                if(box[i].result && box[i].enemy_name==name)
+                    letters.push(box[i])
+            }
+            return letters;
+        }
+        console.log(box);
     }
     document.body.addEventListener('click',function(event){
         for(var i in event.path){
@@ -1067,7 +1102,107 @@ font-size: 1vw;
             return false;
         }
     }
+    var _confirmation = function(conf){
+        return new Promise((d,e)=>{
+            win.$('#confirmation').remove();
+
+            var text = conf.text;
+
+            var content = '<div class="ta_c">\
+<div class="pb10">' + text + '</div>\
+<div class="button w100 ng_confirm_btn">' + win.getLang('cmd_confirm') + '</div>\
+<div class="button w100 red" onclick="removeModal({id: \'confirmation\'});">' + win.getLang('cmd_cancel') + '</div>\
+</div>';
+            if(!conf.data)conf.data={};
+            conf.data.close = 'confirmation';
+
+            var callback = conf.callback || function(){};
+            var before = conf.before || function(){};
+
+            setTimeout(function(){
+                win.modal('js', {
+                    id: 'confirmation',
+                    width: 350,
+                    title: win.getLang('confirmation_title'),
+                    simple: 1,
+                    overlay: true,
+                    bind_close: false,
+                    content: content,
+                    open: function(){
+                        win.$(conf.obj).removeClass('busy');
+
+                        win.$('#confirmation .ng_confirm_btn')
+                            .off('click')
+                            .on('click', function(){
+                            before();
+                            setTimeout(()=>{
+                                win.removeModal({id: 'confirmation'});
+                            },10)
+                            return d();
+
+                        });
+                    },
+                    close(mode){
+                        e(mode);
+                    }
+                });
+            }, 200);
+        })
+    };
+    const getDateText=date=>date.toLocaleDateString(win.lang,{month:'long',day:'numeric'});
+    const formatTime=(time)=>{
+        const date=new Date(Number(time+'000'))
+        const currentDate=getDateText(new Date());
+        const datestr=getDateText(date);
+        return (datestr!=currentDate?datestr+' ':'')+date.toLocaleTimeString(win.lang);
+    }
     const fix={
+        place2(el){
+            const init=el=>{
+                watch(el,{childList:true},function(list){
+                    for(let m of list){
+                        m.addedNodes.forEach(sl=>{
+                            if(!sl.classList)return;
+                            if(sl.classList.contains('mail_status')) fix(sl)
+                        });
+                    }
+                });
+
+            }
+            const fix=(el)=>{
+                let report_link=el.querySelector('[data-report_id]');
+                if(report_link){
+                    let id=report_link.dataset.report_id;
+                    let letter;
+                    for(let i in win.ng_data.mail_list){
+                        if(win.ng_data.mail_list[i].type=='1'
+                           && win.ng_data.mail_list[i].var1==id
+                          ){
+                            letter=win.ng_data.mail_list[i];
+                            break;
+                        }
+                    }
+                    if(letter){
+                        let report=mailBox.get(id);
+                        mailBox.mail(id,letter);
+                        if(!report || !report.result){
+                            el.style.backgroundColor='rgba(255, 255, 0,0.29)';
+                        }else if(report && report.result){
+                            report_link.textContent=report.name+' ⚔️ '+report.enemy_name;
+                        }
+                    }
+                }
+            }
+            watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
+                for(let m of list){
+                    m.addedNodes.forEach(sl=>{
+                        if(!sl.classList)return;
+                        if(sl.classList.contains('mail_list')) init(sl)
+                    });
+                }
+            });
+            init(el.querySelector('.mail_list'));
+        },
         rating(el){
             Array.from(el.querySelectorAll('.tab_block[data-tab="1"] .rating_cont.custom_scroll tr'))
                 .forEach(row=>{
@@ -1161,6 +1296,48 @@ font-size: 1vw;
             })
             console.log('pvp',el);
         },
+        building5_units(el){
+            let button=el.querySelector('[data-cmd="stash_send_squad"]');
+            if(button){
+                let letters=mailBox.getEnemyLast(button.dataset.coord1+':'+button.dataset.coord2+':'+button.dataset.coord3).sort((a,b)=>(Number(a.time)>Number(b.time)));
+                if(letters.length>0){
+                    let div=document.createElement('div');
+                    div.className='g_title';
+                    div.textContent='Прошлые атаки';
+                    button.parentNode.appendChild(div);
+                    div=document.createElement('div');
+                    div.className='g_body';
+                    let t=document.createElement('table');
+                    t.className='g_table borderb mb10 ta_c';
+                    let tr=document.createElement('tr');
+                    tr.innerHTML='<td class="borderr"></td><td class="borderr">'+win.getLang('icon_unit1')+'</td><td class="borderr">'+win.getLang('icon_unit2')+'</td><td class="borderr">'+win.getLang('icon_unit3')+'</td><td class="borderr">'+win.getLang('icon_money1')+'</td><td class="">'+win.getLang('icon_money2')+'</td>';
+                    t.appendChild(tr);
+                    letters.forEach(l=>{
+                        tr=document.createElement('tr');
+                        let c=tr.insertCell();
+                        c.textContent=formatTime(l.time)
+                        c.className='borderr';
+                        c=tr.insertCell();
+                        c.className='borderr';
+                        c.textContent=win.digits(l.enemy_units[1]);
+                        c=tr.insertCell();
+                        c.className='borderr';
+                        c.textContent=win.digits(l.enemy_units[2]);
+                        c=tr.insertCell();
+                        c.className='borderr';
+                        c.textContent=win.digits(l.enemy_units[3]);
+                        c=tr.insertCell();
+                        c.className='borderr';
+                        c.textContent=win.digits(l.loot[0].amount);
+                        c=tr.insertCell();
+                        c.textContent=win.digits(l.loot[1].amount);
+                        t.appendChild(tr);
+                    })
+                    div.appendChild(t);
+                    button.parentNode.appendChild(div);
+                }
+            }
+        },
         profile_dis(el){
             let profile=win.ng_data.profile;
             let div=document.createElement('div');
@@ -1210,7 +1387,7 @@ font-size: 1vw;
                 let div=document.createElement('div');
                 let title=document.createElement('div');
                 title.textContent='Прошлые нападения'
-                title.className='g_title';
+                title.className='g_title mt10';
                 div.appendChild(title);
                 let body=document.createElement('div');
                 body.className='g_body dflex';
@@ -1234,6 +1411,30 @@ font-size: 1vw;
                         setCoord(coord);
                     }
                     btn.textContent=(name||'')+' ['+l+']';
+                    let X=document.createElement('span');
+                    X.setAttribute('title','Удалить');
+                    X.textContent=' X ';
+                    X.style.color="red";
+                    X.onclick=function(event){
+                        let list=store.get('last_fight');
+                        let i=list.indexOf(l);
+                        if(i>-1){
+                            _confirmation({
+                                text:'Удалить '+(name||'')+' ['+l+']'+' из списка целей?',
+                                obj: btn,
+                            }).then(()=>{
+
+                                list.splice(i,1);
+                                console.log(list);
+                                store.set('last_fight',list);
+                                btn.parentNode.removeChild(btn);
+                            })
+                        }
+                        event.stopPropagation();
+                        event.preventDefault();
+                        return false;
+                    }
+                    btn.appendChild(X);
                     body.appendChild(btn);
                 })
                 div.appendChild(body);
