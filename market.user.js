@@ -1189,27 +1189,37 @@ font-size: 1vw;
                             el.style.backgroundColor='rgba(255, 255, 0,0.29)';
                         }else if(report && report.result){
                             report_link.textContent=report.name+' ⚔️ '+(report.enemy_name?report.enemy_name:win.getLang('report_win_monsters'));
+                            let txt=[];
+                            if(report.pattern==6||report.pattern==7||report.pattern==1){
+                                report.loot.forEach(l=>{
+                                    txt.push(win.digits(l.amount)+
+                                             (l.type=='money'
+                                              ?win.getLang('icon_money'+l.what)
+                                              :'<img src="/static/images/items/'+l.what+'s.png" style="max-width:20px;max-height:20px;vertical-align: bottom;"/>' )
+                                           )
+                                })
+                            }
                             if(report.pattern==6){
                                 // die
-                                let txt=[];
-                                report.loot.forEach(l=>{
-                                    txt.push(win.digits(l.amount)+win.getLang('icon_money'+l.what))
-                                })
                                 if(txt.length>0){
                                     let d=document.createElement('div');
                                     d.innerHTML='Потери: <span class="red_color">'+txt.join(' ')+'</span>';
                                     report_link.parentNode.appendChild(d)
                                 }
                             }
-                            if(report.pattern==7){
+                            if(report.pattern==7||report.pattern==1){
                                 // win
-                                let txt=[];
-                                report.loot.forEach(l=>{
-                                    txt.push(win.digits(l.amount)+win.getLang('icon_money'+l.what))
-                                })
+                                //console.log(report.loot);
                                 if(txt.length>0){
                                     let d=document.createElement('div');
                                     d.innerHTML='Добыча: <span class="green_color">'+txt.join(' ')+'</span>';
+                                    if(report.pattern==1){
+                                        d.innerHTML+=' Потери: <span class="red_color">'+Object.keys(report.units_killed).map(k=>{
+                                            if(report.units_killed[k]>0){
+                                                return report.units_killed[k]+win.getLang('icon_unit'+k)
+                                            }return '';
+                                        }).join(' ')+'</span>'
+                                    }
                                     report_link.parentNode.appendChild(d)
                                 }
                             }
