@@ -1188,7 +1188,7 @@ font-size: 1vw;
                         if(!report || !report.result){
                             el.style.backgroundColor='rgba(255, 255, 0,0.29)';
                         }else if(report && report.result){
-                            report_link.textContent=report.name+' ⚔️ '+report.enemy_name;
+                            report_link.textContent=report.name+' ⚔️ '+(report.enemy_name?report.enemy_name:win.getLang('report_win_monsters'));
                         }
                     }
                 }
