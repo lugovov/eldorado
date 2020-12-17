@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14
+// @version      0.14.1
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1189,6 +1189,30 @@ font-size: 1vw;
                             el.style.backgroundColor='rgba(255, 255, 0,0.29)';
                         }else if(report && report.result){
                             report_link.textContent=report.name+' ⚔️ '+(report.enemy_name?report.enemy_name:win.getLang('report_win_monsters'));
+                            if(report.pattern==6){
+                                // die
+                                let txt=[];
+                                report.loot.forEach(l=>{
+                                    txt.push(win.digits(l.amount)+win.getLang('icon_money'+l.what))
+                                })
+                                if(txt.length>0){
+                                    let d=document.createElement('div');
+                                    d.innerHTML='Потери: <span class="red_color">'+txt.join(' ')+'</span>';
+                                    report_link.parentNode.appendChild(d)
+                                }
+                            }
+                            if(report.pattern==7){
+                                // win
+                                let txt=[];
+                                report.loot.forEach(l=>{
+                                    txt.push(win.digits(l.amount)+win.getLang('icon_money'+l.what))
+                                })
+                                if(txt.length>0){
+                                    let d=document.createElement('div');
+                                    d.innerHTML='Добыча: <span class="green_color">'+txt.join(' ')+'</span>';
+                                    report_link.parentNode.appendChild(d)
+                                }
+                            }
                         }
                     }
                 }
