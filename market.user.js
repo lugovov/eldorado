@@ -1512,7 +1512,7 @@ font-size: 1vw;
                     }
                     btn.textContent=(name||'')+' ['+l+']';
                     if(player){
-                        btn.innerHTML=win.getLang('icon_level'+player.lvl)+btn.innerHTML;
+                        btn.innerHTML=win.getLang('icon_level'+player.lvl)+' '+btn.innerHTML;
                     }
                     let X=document.createElement('span');
                     X.setAttribute('title','Удалить');
