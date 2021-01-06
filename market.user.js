@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.1
+// @version      0.14.1.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -378,6 +378,7 @@ try{
     }
     return this;
 }
+const _fixName=(name)=>String(name).replace(/</g,'&lt;');
 var storage=new function(){
     var data={},db;
     var updateStorage=function(){
@@ -404,18 +405,22 @@ var storage=new function(){
         }
     }catch(e){}
     var timer=false;
-    this.getByCoord=function(a,i,p){
+    this.getPlayerByCoord=function(a,i,p){
         let d
         for(let k in data){
             d=data[k];
             if(d.cont==a && d.island==i && d.caslte==p){
-                return String(d.name).replace(/</g,'&lt;')
+                return d
             }
         }
     }
+    this.getByCoord=function(a,i,p){
+        let d=this.getPlayerByCoord(a, i, p);
+        if(d) return _fixName(d.name)
+    }
     this.get=function(id){
         if(id in data){
-            return String(data[id].name).replace(/</g,'&lt;')
+            return _fixName(data[id].name)
         }
         return '';
     }
@@ -1156,6 +1161,48 @@ font-size: 1vw;
         const datestr=getDateText(date);
         return (datestr!=currentDate?datestr+' ':'')+date.toLocaleTimeString(win.lang);
     }
+    const getLootImage=function(data){
+        var award_modifier = 's';
+        var award_item='';
+        var award_amount = data.amount > 1 ? win.digits(data.amount): '';
+        if(data.type == 'money'){
+            award_item = win.getLang('icon_money'+data.what);
+        }
+
+        if(data.type == 'res'){
+            award_item = '<img src="static/images/items/res' + data.what + award_modifier + '.png"  style="max-width:20px;max-height:20px;vertical-align: bottom;"/>';
+        }
+
+        if(data.type == 'unit'){
+            award_item = '<img src="static/images/units/unit' + data.what + award_modifier + '.jpg"  style="max-width:20px;max-height:20px;vertical-align: bottom;"/>';
+        }
+
+        if(data.type == 'item'){
+            award_item = '<img src="static/images/items/' + data.what + award_modifier + '.png"  style="max-width:20px;max-height:20px;vertical-align: bottom;"/>';
+        }
+
+        if(data.type == 'pumpkins'){
+            award_item = '<img src="static/images/items/pumpkin' + award_modifier + '.png"  style="max-width:20px;max-height:20px;vertical-align: bottom;"/>';
+        }
+
+        if(data.type == 'event' && data.what == 'elf'){
+            award_item = '<img src="static/images/items/gnome' + award_modifier + '.png"  style="max-width:20px;max-height:20px;vertical-align: bottom;"/>';
+        }
+
+        if(data.type == 'card'){
+            award_item = '<img src="static/images/cards_npc/' + data.what + '.jpg" class="item_card_image" />';
+        }
+
+        if(data.type == 'exp'){
+            award_item = win.getLang('img_exp');
+        }
+
+        if(data.type == 'glory'){
+            award_item = win.getLang('img_money4');
+        }
+
+        return award_amount +' '+award_item + ' ';
+    }
     const fix={
         place2(el){
             const init=el=>{
@@ -1192,10 +1239,11 @@ font-size: 1vw;
                             let txt=[];
                             if(report.pattern==6||report.pattern==7||report.pattern==1){
                                 report.loot.forEach(l=>{
-                                    txt.push(win.digits(l.amount)+
+                                    txt.push(getLootImage(l)/*win.digits(l.amount)+
                                              (l.type=='money'
                                               ?win.getLang('icon_money'+l.what)
                                               :'<img src="/static/images/items/'+l.what+'s.png" style="max-width:20px;max-height:20px;vertical-align: bottom;"/>' )
+                                              */
                                            )
                                 })
                             }
@@ -1249,51 +1297,51 @@ font-size: 1vw;
             })
         },
         report(el){
-        var myBm=0,enBm=0,myBmd=0,enBmd=0;
-        if(win.ng_data.report){
-            let report=win.ng_data.report;
-            let bm={};
-            for(let i in win.ng_data.config_units){
-                bm[i]=win.ng_data.config_units[i][0]*win.ng_data.config_units[i][1];
-            }
-            for(let i in report.my_unit_types){
-                let t=report.my_unit_types[i]
-                myBm+=bm[t]*report.units[i];
-                myBmd+=bm[t]*report.units_killed[i];
-            }
-            for(let i in report.enemy_unit_types){
-                let t=report.enemy_unit_types[i]
-                enBm+=bm[t]*report.enemy_units[i];
-                enBmd+=bm[t]*report.enemy_units_killed[i];
-            }
-            let table=el.querySelector('.g_table');
-            let m=report.name.match(/^(\d+):(\d+):(\d+)$/);
-            if(m){
-                let newname=storage.getByCoord(m[1],m[2],m[3]);
-                if(newname != undefined){
-                    table.rows[0].cells[0].querySelector('b.red_color').textContent=newname+' ['+m[0]+']';
+            var myBm=0,enBm=0,myBmd=0,enBmd=0;
+            if(win.ng_data.report){
+                let report=win.ng_data.report;
+                let bm={};
+                for(let i in win.ng_data.config_units){
+                    bm[i]=win.ng_data.config_units[i][0]*win.ng_data.config_units[i][1];
                 }
-            }
-            m=report.enemy_name.match(/^(\d+):(\d+):(\d+)$/);
-            if(m){
-                let newname=storage.getByCoord(m[1],m[2],m[3]);
-                if(newname != undefined){
-                    table.rows[0].cells[1].querySelector('b.green_color').textContent=newname+' ['+m[0]+']';
+                for(let i in report.my_unit_types){
+                    let t=report.my_unit_types[i]
+                    myBm+=bm[t]*report.units[i];
+                    myBmd+=bm[t]*report.units_killed[i];
                 }
-            }
-            let row=table.insertRow()
-            let td=row.insertCell()
-            td=row.insertCell()
-            td.colSpan=3;
-            td.className='borderr';
-            td.textContent='Потери: '+(Math.round(myBmd*100000/myBm)/1000)+'%';
-            td=row.insertCell()
-            td.colSpan=3;
-            td.textContent='Потери: '+(Math.round(enBmd*100000/enBm)/1000)+'%';
-            td=row.insertCell()
+                for(let i in report.enemy_unit_types){
+                    let t=report.enemy_unit_types[i]
+                    enBm+=bm[t]*report.enemy_units[i];
+                    enBmd+=bm[t]*report.enemy_units_killed[i];
+                }
+                let table=el.querySelector('.g_table');
+                let m=report.name.match(/^(\d+):(\d+):(\d+)$/);
+                if(m){
+                    let newname=storage.getByCoord(m[1],m[2],m[3]);
+                    if(newname != undefined){
+                        table.rows[0].cells[0].querySelector('b.red_color').textContent=newname+' ['+m[0]+']';
+                    }
+                }
+                m=report.enemy_name.match(/^(\d+):(\d+):(\d+)$/);
+                if(m){
+                    let newname=storage.getByCoord(m[1],m[2],m[3]);
+                    if(newname != undefined){
+                        table.rows[0].cells[1].querySelector('b.green_color').textContent=newname+' ['+m[0]+']';
+                    }
+                }
+                let row=table.insertRow()
+                let td=row.insertCell()
+                td=row.insertCell()
+                td.colSpan=3;
+                td.className='borderr';
+                td.textContent='Потери: '+(Math.round(myBmd*100000/myBm)/1000)+'%';
+                td=row.insertCell()
+                td.colSpan=3;
+                td.textContent='Потери: '+(Math.round(enBmd*100000/enBm)/1000)+'%';
+                td=row.insertCell()
 
-        }
-    },
+            }
+        },
         st_events(el){
             let rows=el.querySelectorAll('table tr');
             let my=win.ng_data.info._pvp_data.events_my;
@@ -1333,7 +1381,7 @@ font-size: 1vw;
         building5_units(el){
             let button=el.querySelector('[data-cmd="stash_send_squad"]');
             if(button){
-                let letters=mailBox.getEnemyLast(button.dataset.coord1+':'+button.dataset.coord2+':'+button.dataset.coord3).sort((a,b)=>(Number(a.time)>Number(b.time)));
+                let letters=mailBox.getEnemyLast(button.dataset.coord1+':'+button.dataset.coord2+':'+button.dataset.coord3).sort((a,b)=>(Number(a.time)>Number(b.time)?-1:1)).slice(0,10);
                 if(letters.length>0){
                     let div=document.createElement('div');
                     div.className='g_title';
@@ -1344,7 +1392,7 @@ font-size: 1vw;
                     let t=document.createElement('table');
                     t.className='g_table borderb mb10 ta_c';
                     let tr=document.createElement('tr');
-                    tr.innerHTML='<td class="borderr"></td><td class="borderr">'+win.getLang('icon_unit1')+'</td><td class="borderr">'+win.getLang('icon_unit2')+'</td><td class="borderr">'+win.getLang('icon_unit3')+'</td><td class="borderr">'+win.getLang('icon_money1')+'</td><td class="">'+win.getLang('icon_money2')+'</td>';
+                    tr.innerHTML='<td class="borderr"></td><td class="borderr">'+win.getLang('icon_unit1')+'</td><td class="borderr">'+win.getLang('icon_unit2')+'</td><td class="borderr">'+win.getLang('icon_unit3')+'</td><td class="borderr">'+win.getLang('icon_money1')+'</td><td class="">'+win.getLang('icon_money2')+'</td><td></td>';
                     t.appendChild(tr);
                     letters.forEach(l=>{
                         tr=document.createElement('tr');
@@ -1362,13 +1410,27 @@ font-size: 1vw;
                         c.textContent=win.digits(l.enemy_units[3]);
                         c=tr.insertCell();
                         c.className='borderr';
-                        c.textContent=win.digits(l.loot[0].amount);
+                        c.textContent=win.digits((l.loot && l.loot.length>0)?l.loot[0].amount:'-');
                         c=tr.insertCell();
-                        c.textContent=win.digits(l.loot[1].amount);
+                        c.textContent=win.digits((l.loot && l.loot.length>1)?l.loot[1].amount:'-');
+                        c=tr.insertCell();
+                        c.innerHTML=(l.loot && l.loot.length>2)?getLootImage(l.loot[2]):'';
                         t.appendChild(tr);
                     })
                     div.appendChild(t);
                     button.parentNode.appendChild(div);
+                    if(letters.length>0){
+                        let units_types=letters[0].my_unit_types;
+                        let units=letters[0].units;
+                        if(units){
+                            for(let k in units_types){
+                                let inp=el.querySelector('input.unit'+units_types[k]);
+                                if(inp){
+                                    inp.value=Math.min(inp.max,units[k]);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -1438,13 +1500,20 @@ font-size: 1vw;
                 last.forEach(l=>{
                     let coord=l.split(':');
                     if(coord.length!=3)return;
-                    let name=storage.getByCoord(coord[0],coord[1],coord[2]);
+                    let player=storage.getPlayerByCoord(coord[0],coord[1],coord[2]);
+                    let name;
+                    if(player){
+                        name=_fixName(player.name);
+                    }
                     let btn=document.createElement('div');
                     btn.className='button small'
                     btn.onclick=()=>{
                         setCoord(coord);
                     }
                     btn.textContent=(name||'')+' ['+l+']';
+                    if(player){
+                        btn.innerHTML=win.getLang('icon_level'+player.lvl)+btn.innerHTML;
+                    }
                     let X=document.createElement('span');
                     X.setAttribute('title','Удалить');
                     X.textContent=' X ';
@@ -1454,7 +1523,7 @@ font-size: 1vw;
                         let i=list.indexOf(l);
                         if(i>-1){
                             _confirmation({
-                                text:'Удалить '+(name||'')+' ['+l+']'+' из списка целей?',
+                                text:'Удалить '+(name||'')+' ['+l+'] из списка целей?',
                                 obj: btn,
                             }).then(()=>{
 
