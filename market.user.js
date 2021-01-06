@@ -1556,10 +1556,10 @@ font-size: 1vw;
     }
     const addToBody=function(el){
         if(!show) return;
-        let tmp=el.querySelector('.small_count');
-        if(tmp) fixBuildTimer(tmp);
-        tmp=el.querySelector('.middle_count');
-        if(tmp) fixBuildTimer(tmp);
+        let tmp=el.querySelectorAll('.small_count,.middle_count').forEach(fixBuildTimer);
+        //if(tmp) fixBuildTimer(tmp);
+        //tmp=el.querySelector('.middle_count');
+        //if(tmp) fixBuildTimer(tmp);
         tmp=el.querySelector('.g_title.orange')
         if(tmp) fixBuildInfo(tmp,el)
 
@@ -1569,8 +1569,6 @@ font-size: 1vw;
             events.updateWindow(el);
         }else if(el.id=='inventory'){
             fixInventory(el);
-//        }else if(el.id=='event_badman'){
-//            fixBadMan(el);
         }else if(el.id>'' && fix.hasOwnProperty(el.id)){
             fix[el.id](el);
         }
