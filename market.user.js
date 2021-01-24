@@ -1556,10 +1556,8 @@ font-size: 1vw;
     }
     const addToBody=function(el){
         if(!show) return;
-        let tmp=el.querySelectorAll('.small_count,.middle_count').forEach(fixBuildTimer);
-        //if(tmp) fixBuildTimer(tmp);
-        //tmp=el.querySelector('.middle_count');
-        //if(tmp) fixBuildTimer(tmp);
+        el.querySelectorAll('.small_count,.middle_count').forEach(fixBuildTimer);
+
         tmp=el.querySelector('.g_title.orange')
         if(tmp) fixBuildInfo(tmp,el)
 
