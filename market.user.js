@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.1.2
+// @version      0.14.1.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1558,7 +1558,7 @@ font-size: 1vw;
         if(!show) return;
         el.querySelectorAll('.small_count,.middle_count').forEach(fixBuildTimer);
 
-        tmp=el.querySelector('.g_title.orange')
+        let tmp=el.querySelector('.g_title.orange')
         if(tmp) fixBuildInfo(tmp,el)
 
         if(el.id=='place10'){
