@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.1.3
+// @version      0.14.2
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -84,7 +84,9 @@ window.addEventListener ("load", function() {
                         store.set('last_fight',data);
                         break;
                     }
-
+                    case 'get_town_data':
+                        fix.get_town_data(xhr.responseJSON.result.town_data);
+                    break;
                 }
             }catch(e){}
             try{
@@ -1552,6 +1554,27 @@ font-size: 1vw;
                 }
             })
             fix(el.querySelector('.tab_block[data-tab="2"]'));
+        },
+        get_town_data(town){
+            setTimeout(()=>{
+                console.log(town);
+                let timers=false;
+                Object.keys(town._castle).forEach(k=>{
+                    if(town._castle[k].timer){
+                        let div=document.createElement('div');
+                        div.setAttribute('timer_end_popup',town._castle[k].timer);
+                        div.className='small_count day_on blue'
+                        let c=document.querySelector('.building_block.pos'+k+' .building_block_content')
+                        let t=document.createElement('div')
+                        t.className='building_timer dark_bgr';
+                        t.innerHTML='<br/>'+buildEndTime(new Date(town._castle[k].timer*1000))+'<br/>';
+                        t.appendChild(div);
+                        c.insertBefore(t,c.firstChild);
+                        timers=true;
+                    }
+                })
+                if(timers)win.start_timers('popup');
+            },100)
         }
     }
     const addToBody=function(el){
