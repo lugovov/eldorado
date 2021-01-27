@@ -1289,7 +1289,7 @@ font-size: 1vw;
                                     if(report.pattern==1){
                                         d.innerHTML+=' Потери: <span class="red_color">'+Object.keys(report.units_killed).map(k=>{
                                             if(report.units_killed[k]>0){
-                                                return report.units_killed[k]+win.getLang('icon_unit'+k)
+                                                return report.units_killed[k]+' '+win.getLang('icon_unit'+k)
                                             }return '';
                                         }).join(' ')+'</span>'
                                     }
@@ -1349,10 +1349,10 @@ font-size: 1vw;
                 td=row.insertCell()
                 td.colSpan=3;
                 td.className='borderr';
-                td.textContent='Потери: '+(Math.round(myBmd*100000/myBm)/1000)+'%';
+                td.textContent='Потери: '+(myBm>0?(Math.round(myBmd*100000/myBm)/1000):'-')+'%';
                 td=row.insertCell()
                 td.colSpan=3;
-                td.textContent='Потери: '+(Math.round(enBmd*100000/enBm)/1000)+'%';
+                td.textContent='Потери: '+(enBm>0?(Math.round(enBmd*100000/enBm)/1000):'-')+'%';
                 td=row.insertCell()
 
             }
