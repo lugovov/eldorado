@@ -1349,10 +1349,10 @@ font-size: 1vw;
                 td=row.insertCell()
                 td.colSpan=3;
                 td.className='borderr';
-                td.textContent='Потери: '+(myBm>0?(Math.round(myBmd*100000/myBm)/1000):'-')+'%';
+                td.textContent='Потери: '+(myBm>0?(Math.round(myBmd*100000/myBm)/1000)+'%':'-');
                 td=row.insertCell()
                 td.colSpan=3;
-                td.textContent='Потери: '+(enBm>0?(Math.round(enBmd*100000/enBm)/1000):'-')+'%';
+                td.textContent='Потери: '+(enBm>0?(Math.round(enBmd*100000/enBm)/1000)+'%':'-');
                 td=row.insertCell()
 
             }
