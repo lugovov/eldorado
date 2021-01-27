@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.2.1
+// @version      0.14.3
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1206,19 +1206,41 @@ font-size: 1vw;
         return award_amount +' '+award_item + ' ';
     }
     const fix={
+        _report_name:(report)=>{
+            if(!report)return;
+            let m
+            if(report.name){
+                m=report.name.match(/^(\d+):(\d+):(\d+)$/);
+                if(m){
+                    let newname=storage.getByCoord(m[1],m[2],m[3]);
+                    if(newname != undefined){
+                        report.name=newname+' ['+m[0]+']';
+                    }
+                }
+            }
+            if(report.enemy_name){
+                m=report.enemy_name.match(/^(\d+):(\d+):(\d+)$/);
+                if(m){
+                    let newname=storage.getByCoord(m[1],m[2],m[3]);
+                    if(newname != undefined){
+                        report.enemy_name=newname+' ['+m[0]+']';
+                    }
+                }
+            }
+        },        
         place2(el){
             const init=el=>{
                 watch(el,{childList:true},function(list){
                     for(let m of list){
                         m.addedNodes.forEach(sl=>{
                             if(!sl.classList)return;
-                            if(sl.classList.contains('mail_status')) fix(sl)
+                            if(sl.classList.contains('mail_status')) fixWindow(sl)
                         });
                     }
                 });
 
             }
-            const fix=(el)=>{
+            const fixWindow=(el)=>{
                 let report_link=el.querySelector('[data-report_id]');
                 if(report_link){
                     let id=report_link.dataset.report_id;
@@ -1233,11 +1255,12 @@ font-size: 1vw;
                     }
                     if(letter){
                         let report=mailBox.get(id);
+                        fix._report_name(report);
                         mailBox.mail(id,letter);
                         if(!report || !report.result){
                             el.style.backgroundColor='rgba(255, 255, 0,0.29)';
                         }else if(report && report.result){
-                            report_link.textContent=report.name+' ⚔️ '+(report.enemy_name?report.enemy_name:win.getLang('report_win_monsters'));
+                            report_link.previousSibling.textContent='Бой между '+report.name+' ⚔️ '+(report.enemy_name?report.enemy_name:win.getLang('report_win_monsters'))+'. '
                             let txt=[];
                             if(report.pattern==6||report.pattern==7||report.pattern==1){
                                 report.loot.forEach(l=>{
@@ -1302,6 +1325,7 @@ font-size: 1vw;
             var myBm=0,enBm=0,myBmd=0,enBmd=0;
             if(win.ng_data.report){
                 let report=win.ng_data.report;
+                fix._report_name(report)
                 let bm={};
                 for(let i in win.ng_data.config_units){
                     bm[i]=win.ng_data.config_units[i][0]*win.ng_data.config_units[i][1];
@@ -1317,20 +1341,9 @@ font-size: 1vw;
                     enBmd+=bm[t]*report.enemy_units_killed[i];
                 }
                 let table=el.querySelector('.g_table');
-                let m=report.name.match(/^(\d+):(\d+):(\d+)$/);
-                if(m){
-                    let newname=storage.getByCoord(m[1],m[2],m[3]);
-                    if(newname != undefined){
-                        table.rows[0].cells[0].querySelector('b.red_color').textContent=newname+' ['+m[0]+']';
-                    }
-                }
-                m=report.enemy_name.match(/^(\d+):(\d+):(\d+)$/);
-                if(m){
-                    let newname=storage.getByCoord(m[1],m[2],m[3]);
-                    if(newname != undefined){
-                        table.rows[0].cells[1].querySelector('b.green_color').textContent=newname+' ['+m[0]+']';
-                    }
-                }
+                table.rows[0].cells[0].querySelector('b.red_color').textContent=report.name;
+                table.rows[0].cells[1].querySelector('b.green_color').textContent=report.enemy_name;
+                
                 let row=table.insertRow()
                 let td=row.insertCell()
                 td=row.insertCell()
