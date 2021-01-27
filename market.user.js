@@ -1561,7 +1561,6 @@ font-size: 1vw;
         },
         get_town_data(town){
             setTimeout(()=>{
-                console.log(town);
                 let timers=false;
                 Object.keys(town._castle).forEach(k=>{
                     if(town._castle[k].timer){
