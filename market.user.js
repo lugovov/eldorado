@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.3
+// @version      0.14.4
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -43,6 +43,9 @@ window.addEventListener ("load", function() {
             */
             try{
                 var params=new URLSearchParams(options.data);
+                if(cmd_cb.hasOwnProperty(params.get('cmd'))){
+                    cmd_cb[params.get('cmd')](xhr.responseJSON,params)
+                }                
                 switch(params.get('cmd')){
                     case 'event_start':{
                         if(xhr.responseJSON.result.event_boxes){
@@ -84,9 +87,6 @@ window.addEventListener ("load", function() {
                         store.set('last_fight',data);
                         break;
                     }
-                    case 'get_town_data':
-                        fix.get_town_data(xhr.responseJSON.result.town_data);
-                    break;
                 }
             }catch(e){}
             try{
@@ -94,6 +94,25 @@ window.addEventListener ("load", function() {
             }catch(e){}
         }
     });
+    const cmd_cb={
+        get_user_info(json,params){
+            if(json.result.profile){
+                let profile=json.result.profile;
+                storage.set(params.get('pid'),{
+                    cont:Number(profile.continent),
+                    island:Number(profile.island),
+                    castle:Number(profile.castle),
+                    name:profile.name,
+                    lvl:Number(profile.bld_main),
+                })
+            }
+        },
+        get_town_data(json){
+            if(json.result.town_data){
+                fix.get_town_data(json.result.town_data);
+            }
+        }
+    }    
     var island_timers=new function(){
         var timers={},div,display;
         var time=function(sec){
@@ -1474,9 +1493,18 @@ font-size: 1vw;
                         let res=index+1
                         let len=Math.min(lots[res].length,table.rows.length);
                         for(let i=0;i<len;i++){
+                            let name=storage.get(lots[res][i].pid)
                             table.rows[i].cells[1].innerHTML='<div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+
                                 table.rows[i].cells[1].innerHTML.replace(/1\s+<b class="icon icon_res."><\/b>\s+за\s+/,'')
-                                +storage.get(lots[res][i].pid)+'</div>'
+                                +name+'</div>';
+                            if(name==''){
+                                let d=document.createElement('span');
+                                d.className='show_player_info';
+                                let pid=lots[res][i].pid;
+                                d.dataset.pid=pid;
+                                d.textContent='id-'+pid;
+                                table.rows[i].cells[1].firstChild.appendChild(d);
+                            }
                         }
                     })
                 }
