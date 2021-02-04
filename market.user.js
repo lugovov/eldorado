@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.4
+// @version      0.14.5
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -1248,7 +1248,11 @@ font-size: 1vw;
             }
         },        
         place2(el){
+            let scrollTop=0;
             const init=el=>{
+                el.addEventListener('scroll',function(){
+                    scrollTop=el.scrollTop;
+                })
                 watch(el,{childList:true},function(list){
                     for(let m of list){
                         m.addedNodes.forEach(sl=>{
@@ -1256,6 +1260,7 @@ font-size: 1vw;
                             if(sl.classList.contains('mail_status')) fixWindow(sl)
                         });
                     }
+                    el.scrollTop=scrollTop;
                 });
 
             }
