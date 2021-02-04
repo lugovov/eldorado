@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Комфортное Эльдорадо
 // @namespace    http://eldorado.botva.ru/
-// @version      0.14.5
+// @version      0.15
 // @downloadURL  https://github.com/lugovov/eldorado/raw/master/market.user.js
 // @updateURL    https://github.com/lugovov/eldorado/raw/master/market.meta.js
 // @description  try to take over the world!
@@ -668,13 +668,76 @@ var fight=new function(){
             slider
                 .off('afterChange',afterScroll)
                 .on('afterChange',afterScroll)
-                .off('wheel', wheel)
-                .on('wheel', wheel);
+              //  .off('wheel', wheel)
+//                .on('wheel', wheel);
 
         }
 
-        return function(el,noinit){
+        var fixHeroTab=function(div){
+            let list=win.ng_data.info._hero_list;
+            let id=Number(div.dataset.tab)
+            if(!list.hasOwnProperty(id))return;
+            let button=div.querySelector('.hero_units_cmd');
+            if(!button || button.classList.contains('disabled')) return;
+            '<div class="button active_link" data-cmd="hero_units" data-hero_id="874" data-unit1="0" data-unit2="0" data-unit3="19497" data-close="building10_units">                    Изменить                </div>'
+            let hero=list[id];
+            console.log(id,button,hero);
+            let table=button.closest('.ta_c').querySelector('.g_table');
+            let btn=document.createElement('span');
+            btn.className='active_link pointer';
+            btn.dataset.cmd='hero_units'
+            btn.dataset.hero_id=id;
+            btn.dataset.unit1=0;
+            btn.dataset.unit2=0;
+            btn.dataset.unit3=0;
+            btn.textContent='Выгрузить';
+            table.rows[0].cells[0].textContent=win.lang_data.hero_squad+' ';
+            table.rows[0].cells[0].appendChild(btn);
+            let full=(hero.max_units==Number(hero.unit_1)+Number(hero.unit_2)+Number(hero.unit_3));
+            let max;
+            btn=table.rows[2].cells[0].querySelector('b');
+            if(full){
+                btn.classList.add('green_color')
+            }else if(max=Math.min(hero.max_units-hero.unit_2-hero.unit_3,Number(hero.unit_1)+Number(win.ng_data.info.unit_1))){
+                btn.classList.add('active_link','pointer');
+                btn.dataset.cmd='hero_units'
+                btn.dataset.hero_id=id;
+                btn.dataset.unit1=max;
+                btn.dataset.unit2=hero.unit_2;
+                btn.dataset.unit3=hero.unit_3;
+            }
 
+            btn=table.rows[2].cells[1].querySelector('b');
+            if(full){
+                btn.classList.add('green_color')
+            }else if(max=Math.min(hero.max_units-hero.unit_1-hero.unit_3,Number(hero.unit_2)+Number(win.ng_data.info.unit_2))){
+                btn.classList.add('active_link','pointer');
+                btn.dataset.cmd='hero_units'
+                btn.dataset.hero_id=id;
+                btn.dataset.unit1=hero.unit_1;
+                btn.dataset.unit2=max;
+                btn.dataset.unit3=hero.unit_3;
+            }
+
+            btn=table.rows[2].cells[2].querySelector('b');
+            if(full){
+                btn.classList.add('green_color')
+            }else if(max=Math.min(hero.max_units-hero.unit_1-hero.unit_2,Number(hero.unit_3)+Number(win.ng_data.info.unit_3))){
+                btn.classList.add('active_link','pointer');
+                btn.dataset.cmd='hero_units'
+                btn.dataset.hero_id=id;
+                btn.dataset.unit1=hero.unit_1;
+                btn.dataset.unit2=hero.unit_2;
+                btn.dataset.unit3=max;
+            }
+
+        }
+        var fixHeroes=function(el){
+            Array.from(el.querySelectorAll('.s_tab[data-tabid="heroes"]')).forEach(fixHeroTab)
+        }
+
+        return function(el,noinit){
+            fixHeroes(el);
             var div=el.querySelector('.g_slider_vertical.heroes');
             if(div.slick)return fix(div);
             watch(div,{
@@ -694,7 +757,7 @@ var fight=new function(){
         };
     })()
     this.updateHeroListWin=(el)=>{
-        return;
+        //return;
         if(!el)el=document.querySelector('#place10');
         watch(el.querySelector('.custom_scroll'),{childList:true},function(list){
             for(let m of list){
